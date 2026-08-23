@@ -1,0 +1,9 @@
+# File sumber & data rinci -- JANGAN pernah commit ke git. Semua ini berisi data
+# pasien (No RM, Nama Pasien) dan/atau file mentah besar. Simpan di Google Drive
+# folder "TENAGA MEDIS SIMRS POIN", bukan di repo ini.
+/data_source/
+
+# scratch / OS files
+.DS_Store
+__pycache__/
+*.pyc
