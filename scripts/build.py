@@ -452,17 +452,20 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
 .trend-delta-down{ fill:var(--warn-strong); }
 .trend-empty{ text-align:center; color:var(--text-faint); font-style:italic; padding:30px; }
 
-/* ---------- Grafik Batang 3D (Total Poin per Dokter, menu Perbandingan Spesialisasi) ---------- */
-.bar3d-chart-wrap{
+/* ---------- Grafik Batang: Poin per Tindakan (menu Perbandingan Spesialisasi) ---------- */
+.bar2d-chart-wrap{
   background:linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
   border:1px solid var(--border); border-radius:14px; padding:18px 20px 10px;
   box-shadow:var(--shadow); animation:fade-slide-in .5s ease both; overflow-x:auto;
 }
-.bar3d-svg{ display:block; max-width:none; }
-.bar3d-item{ cursor:default; }
-.bar3d-name-label{ font-family:"Public Sans", sans-serif; font-size:10px; fill:var(--text-muted); }
-.bar3d-value-label{ font-family:"IBM Plex Mono", monospace; font-size:11px; font-weight:700; fill:var(--text); }
-.bar3d-empty{ text-align:center; color:var(--text-faint); font-style:italic; padding:30px; }
+.bar2d-svg{ display:block; max-width:none; }
+.bar2d-item{ cursor:default; }
+.bar2d-name-label{ font-family:"Public Sans", sans-serif; font-size:10px; fill:var(--text-muted); }
+.bar2d-value-label{ font-family:"IBM Plex Mono", monospace; font-size:11px; font-weight:700; fill:var(--text); }
+.bar2d-empty{ text-align:center; color:var(--text-faint); font-style:italic; padding:30px; }
+.bar2d-legend{ display:flex; flex-wrap:wrap; justify-content:center; gap:16px; padding:2px 0 14px; }
+.bar2d-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-muted); font-weight:600; }
+.bar2d-legend-swatch{ width:11px; height:11px; border-radius:3px; display:inline-block; box-shadow:0 1px 0 rgba(255,255,255,0.4) inset; }
 
 .footnote{ margin-top:26px; font-size:11.5px; color:var(--text-faint); border-top:1px solid var(--border); padding-top:14px; }
 .footnote code{ font-family:"IBM Plex Mono", monospace; background:var(--surface-2); padding:1px 5px; border-radius:4px; }
@@ -880,8 +883,9 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
     </div>
 
     <div class="section">
-      <div class="section-head"><h3>Grafik Total Poin per Dokter</h3><span class="count-tag">Total Poin = Poin Jaspel + Poin Jasa Operator + Poin Jasa Anestesi</span></div>
-      <div class="bar3d-chart-wrap" id="doctorPoinBarChartWrap"></div>
+      <div class="section-head"><h3>Grafik Poin per Tindakan</h3><span class="count-tag" id="doctorPoinBarChartTag">Poin = (Japel+Operator)/1000 per tindakan, per dokter</span></div>
+      <div class="bar2d-legend" id="doctorPoinBarChartLegend"></div>
+      <div class="bar2d-chart-wrap" id="doctorPoinBarChartWrap"></div>
     </div>
 
     <div class="section">
@@ -1547,69 +1551,129 @@ function renderSpecCompareTable(rows){
   });
 }
 
-// ---------- Grafik Batang 3D: Total Poin per Dokter (menu Perbandingan Spesialisasi) ----------
-// Model visual: batang 3D klasik (front face gradasi + top face & side face jajar genjang
-// diberi offset dx/dy utk kesan kedalaman) -- direplikasi dari referensi grafik batang 3D
-// yg diminta user, diterapkan ke satu metrik (Total Poin per dokter) krn data di sini
-// bersifat satu-seri (bukan dua seri spt referensinya).
+// ---------- Grafik Batang: Poin per Tindakan (menu Perbandingan Spesialisasi) ----------
+// 2026-08-23: dirombak atas koreksi user -- SEBELUMNYA sempat dibuat batang 3D (front+top+side
+// face) & memakai Total Poin per dokter; user minta grafiknya PERSIS spt referensi yg diberikan
+// (batang FLAT 2D bergradasi, legenda berwarna di atas, kategori di sumbu-X, satu seri warna per
+// item yg dibandingkan -- pola sama dgn contoh "Pendapatan vs Belanja per Tahun"), dan datanya
+// harus Poin PER TINDAKAN (bukan total Poin keseluruhan dokter). Jadi: sumbu-X = nama tindakan
+// (top N dgn Poin tertinggi gabungan semua dokter yg dibandingkan), satu seri warna per dokter,
+// nilai = Poin tindakan tsb utk dokter itu = (Japel+Operator)/1000 -- sama persis dgn definisi
+// kolom "Poin" di tabel "Tindakan Dilaksanakan (Unik)" (TIDAK memasukkan komponen Jasa Anestesi).
+const TOP_N_TINDAKAN_CHART = 8;
+const CHART_SERIES_PALETTE = [
+  { top:'var(--accent-soft-2)', mid:'var(--accent)', bottom:'var(--accent-strong)' },
+  { top:'var(--yellow-soft)', mid:'var(--yellow)', bottom:'var(--yellow-strong)' },
+  { top:'var(--sage-soft)', mid:'var(--sage)', bottom:'var(--sage-strong)' },
+  { top:'var(--warn-soft)', mid:'var(--warn)', bottom:'var(--warn-strong)' },
+];
+
+// Rect dgn sudut atas membulat & sudut bawah siku (baseline tetap rata) -- dipakai spy batang
+// terlihat spt referensi (bar chart flat 2D bersudut atas membulat tipis), bukan kotak polos.
+function roundedTopRectPath(x, y, w, h, r){
+  if (h <= 0 || w <= 0) return '';
+  const rr = Math.max(0, Math.min(r, w/2, h));
+  if (rr <= 0.5) return `M${x.toFixed(1)},${y.toFixed(1)} h${w.toFixed(1)} v${h.toFixed(1)} h${(-w).toFixed(1)} Z`;
+  return `M${x.toFixed(1)},${(y+rr).toFixed(1)} A${rr.toFixed(1)},${rr.toFixed(1)} 0 0 1 ${(x+rr).toFixed(1)},${y.toFixed(1)} L${(x+w-rr).toFixed(1)},${y.toFixed(1)} A${rr.toFixed(1)},${rr.toFixed(1)} 0 0 1 ${(x+w).toFixed(1)},${(y+rr).toFixed(1)} L${(x+w).toFixed(1)},${(y+h).toFixed(1)} L${x.toFixed(1)},${(y+h).toFixed(1)} Z`;
+}
+
+// Jumlahkan Poin ((Japel+Operator)/1000) per NAMA tindakan, digabung lintas kombinasi
+// sub-klasifikasi/dokter-anestesi (sama spt cara tabel "Tindakan Dilaksanakan (Unik)" menghitung
+// per baris, hanya di sini dijumlah per nama krn satu tindakan bisa py beberapa kombinasi).
+function aggregateTindakanPoin(tindakanArr){
+  const m = new Map();
+  for (const c of tindakanArr){
+    const poin = ((c.japel || 0) + (c.operator || 0)) / 1000;
+    m.set(c.name, (m.get(c.name) || 0) + poin);
+  }
+  return m;
+}
+
 function renderDoctorPoinBarChart(rows){
   const wrap = document.getElementById('doctorPoinBarChartWrap');
-  const sorted = [...rows].sort((a,b) => b.total_poin - a.total_poin);
-  if (sorted.length === 0){
-    wrap.innerHTML = `<div class="bar3d-empty">Tidak ada dokter pada spesialisasi ini</div>`;
+  const legendWrap = document.getElementById('doctorPoinBarChartLegend');
+  const tag = document.getElementById('doctorPoinBarChartTag');
+  if (rows.length === 0){
+    wrap.innerHTML = `<div class="bar2d-empty">Tidak ada dokter pada spesialisasi ini</div>`;
+    if (legendWrap) legendWrap.innerHTML = '';
+    if (tag) tag.textContent = 'Poin = (Japel+Operator)/1000 per tindakan, per dokter';
     return;
   }
-  const n = sorted.length;
-  const depthX = 16, depthY = -13; // offset sisi atas & kanan utk efek 3D
-  const padL = 58, padR = 24, padT = 44, padB = 46;
-  const minSlot = 130;
-  const plotW = Math.max(560, n * minSlot);
+
+  const perDoctor = rows.map(r => ({ name: r.name, map: aggregateTindakanPoin(r.tindakan) }));
+  const totalByTindakan = new Map();
+  perDoctor.forEach(pd => { pd.map.forEach((v, name) => totalByTindakan.set(name, (totalByTindakan.get(name) || 0) + v)); });
+  const sortedNames = Array.from(totalByTindakan.keys())
+    .filter(n => n !== '(lainnya)' && totalByTindakan.get(n) > 0)
+    .sort((a, b) => totalByTindakan.get(b) - totalByTindakan.get(a));
+  const shownNames = sortedNames.slice(0, TOP_N_TINDAKAN_CHART);
+  const omitted = sortedNames.length - shownNames.length;
+
+  if (legendWrap){
+    legendWrap.innerHTML = perDoctor.map((pd, i) => {
+      const c = CHART_SERIES_PALETTE[i % CHART_SERIES_PALETTE.length];
+      return `<span class="bar2d-legend-item"><span class="bar2d-legend-swatch" style="background:${c.mid}"></span>${escapeHtml(pd.name)}</span>`;
+    }).join('');
+  }
+  if (tag){
+    tag.textContent = omitted > 0
+      ? `${shownNames.length} dari ${sortedNames.length} tindakan (Poin tertinggi) · Poin = (Japel+Operator)/1000`
+      : `Poin = (Japel+Operator)/1000 per tindakan, per dokter`;
+  }
+
+  if (shownNames.length === 0){
+    wrap.innerHTML = `<div class="bar2d-empty">Tidak ada tindakan dgn Poin pada spesialisasi ini</div>`;
+    return;
+  }
+
+  const nCat = shownNames.length, nSeries = perDoctor.length;
+  const padL = 60, padR = 24, padT = 20, padB = 68;
+  const groupGap = 32, barGap = 4;
+  const barW = Math.min(42, Math.max(14, 220 / nSeries));
+  const groupW = nSeries * barW + (nSeries - 1) * barGap;
+  const slotW = groupW + groupGap;
+  const plotW = nCat * slotW;
   const W = padL + plotW + padR, H = 300;
   const plotH = H - padT - padB;
-  const maxVal = Math.max(1, ...sorted.map(r => r.total_poin));
-  const slot = plotW / n;
-  const barW = Math.min(70, slot * 0.5);
   const baseline = padT + plotH;
+  const maxVal = Math.max(1, ...shownNames.flatMap(name => perDoctor.map(pd => pd.map.get(name) || 0)));
+  const maxChars = Math.max(10, Math.floor(slotW / 6));
 
   let gridSvg = '';
   for (let g = 0; g <= 4; g++){
     const gy = padT + plotH * g/4;
     const gv = maxVal * (1 - g/4);
-    gridSvg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${(W-padR+depthX).toFixed(1)}" y2="${gy.toFixed(1)}" class="trend-grid-line"/>`;
+    gridSvg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${gy.toFixed(1)}" class="trend-grid-line"/>`;
     gridSvg += `<text x="${(padL-10).toFixed(1)}" y="${(gy+3).toFixed(1)}" text-anchor="end" class="trend-axis-label">${fmtInt(gv)}</text>`;
   }
 
-  const barsSvg = sorted.map((r) => {
-    const idx = sorted.indexOf(r);
-    const cx = padL + slot*idx + slot/2;
-    const x = cx - barW/2;
-    const val = r.total_poin;
-    const yTop = padT + plotH - (maxVal > 0 ? (val/maxVal)*plotH : 0);
-    const topFace = `${x.toFixed(1)},${yTop.toFixed(1)} ${(x+barW).toFixed(1)},${yTop.toFixed(1)} ${(x+barW+depthX).toFixed(1)},${(yTop+depthY).toFixed(1)} ${(x+depthX).toFixed(1)},${(yTop+depthY).toFixed(1)}`;
-    const sideFace = `${(x+barW).toFixed(1)},${yTop.toFixed(1)} ${(x+barW+depthX).toFixed(1)},${(yTop+depthY).toFixed(1)} ${(x+barW+depthX).toFixed(1)},${(baseline+depthY).toFixed(1)} ${(x+barW).toFixed(1)},${baseline.toFixed(1)}`;
-    const nameShort = r.name.length > 20 ? r.name.slice(0,19) + '…' : r.name;
-    return `<g class="bar3d-item">
-      <title>${escapeHtml(r.name)}: ${fmtInt(val)} Poin</title>
-      <polygon points="${sideFace}" fill="var(--accent-strong)"/>
-      <polygon points="${sideFace}" fill="#000" opacity="0.16"/>
-      <rect x="${x.toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${(baseline-yTop).toFixed(1)}" fill="url(#bar3dFrontGrad)"/>
-      <polygon points="${topFace}" fill="var(--accent-soft-2)"/>
-      <polygon points="${topFace}" fill="#fff" opacity="0.3"/>
-      <text x="${(cx+depthX/2).toFixed(1)}" y="${(yTop-10).toFixed(1)}" text-anchor="middle" class="bar3d-value-label">${fmtInt(val)}</text>
-      <text x="${cx.toFixed(1)}" y="${(baseline+20).toFixed(1)}" text-anchor="middle" class="bar3d-name-label">${escapeHtml(nameShort)}</text>
-    </g>`;
-  }).join('');
+  let barsSvg = '';
+  shownNames.forEach((name, ci) => {
+    const groupX0 = padL + ci*slotW + groupGap/2;
+    const cx = groupX0 + groupW/2;
+    perDoctor.forEach((pd, si) => {
+      const val = pd.map.get(name) || 0;
+      const x = groupX0 + si*(barW+barGap);
+      const yTop = padT + plotH - (maxVal > 0 ? (val/maxVal)*plotH : 0);
+      const h = baseline - yTop;
+      const c = CHART_SERIES_PALETTE[si % CHART_SERIES_PALETTE.length];
+      const gradId = `bar2dGrad_${ci}_${si}`;
+      barsSvg += `<g class="bar2d-item">
+        <title>${escapeHtml(pd.name)} — ${escapeHtml(name)}: ${fmtInt(val)} Poin</title>
+        <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="${c.top}"/><stop offset="55%" stop-color="${c.mid}"/><stop offset="100%" stop-color="${c.bottom}"/>
+        </linearGradient></defs>
+        ${h > 0 ? `<path d="${roundedTopRectPath(x, yTop, barW, h, 4)}" fill="url(#${gradId})"/>` : ''}
+        ${val > 0 ? `<text x="${(x+barW/2).toFixed(1)}" y="${(yTop-6).toFixed(1)}" text-anchor="middle" class="bar2d-value-label">${fmtInt(val)}</text>` : ''}
+      </g>`;
+    });
+    const nameShort = name.length > maxChars ? name.slice(0, maxChars-1) + '…' : name;
+    barsSvg += `<text x="${cx.toFixed(1)}" y="${(baseline+18).toFixed(1)}" text-anchor="middle" class="bar2d-name-label">${escapeHtml(nameShort)}</text>`;
+  });
 
-  wrap.innerHTML = `<svg class="bar3d-svg" width="${(W+depthX).toFixed(0)}" height="${H}" viewBox="0 0 ${(W+depthX).toFixed(0)} ${H}">
-    <defs>
-      <linearGradient id="bar3dFrontGrad" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="var(--accent-soft-2)"/>
-        <stop offset="45%" stop-color="var(--accent)"/>
-        <stop offset="100%" stop-color="var(--accent-strong)"/>
-      </linearGradient>
-    </defs>
+  wrap.innerHTML = `<svg class="bar2d-svg" width="${W.toFixed(0)}" height="${H}" viewBox="0 0 ${W.toFixed(0)} ${H}">
     ${gridSvg}
-    <line x1="${padL}" y1="${baseline.toFixed(1)}" x2="${(W-padR+depthX).toFixed(1)}" y2="${baseline.toFixed(1)}" stroke="var(--border)" stroke-width="1.4"/>
+    <line x1="${padL}" y1="${baseline.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${baseline.toFixed(1)}" stroke="var(--border)" stroke-width="1.4"/>
     ${barsSvg}
   </svg>`;
 }
