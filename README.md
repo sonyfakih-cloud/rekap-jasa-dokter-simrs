@@ -22,6 +22,28 @@ Kalau ternyata butuh akses terbatas (bukan publik penuh), opsinya: jadikan repo
 private (perlu GitHub Pro/Team/Enterprise agar GitHub Pages private-nya jalan), atau
 tetap gunakan Artifact link yang sudah ada (privat secara default, tidak terindeks).
 
+### Gerbang login (kata sandi + Google Authenticator) — BUKAN keamanan sungguhan
+
+`index.html` punya layar login (kata sandi lalu kode TOTP 6-digit) sebelum konten
+dashboard ditampilkan. **Penting untuk dipahami:** ini situs statis tanpa server, jadi
+hash kata sandi maupun secret TOTP-nya ikut tertanam di dalam `index.html` itu sendiri
+dan bisa dilihat siapa saja yang buka "View Page Source" / DevTools di browser. Artinya:
+
+- Ini **penghalang casual** (orang yang kebetulan tahu URL tapi tidak diminta membuka),
+  **bukan** perlindungan terhadap orang yang punya sedikit pengetahuan teknis — mereka
+  bisa mengambil secret TOTP dari source lalu menghasilkan kode valid tanpa perlu
+  aplikasi Google Authenticator sama sekali, atau meng-crack hash kata sandi pendek
+  dalam hitungan detik.
+- Klasifikasi data tidak berubah karena adanya gerbang ini: anggap kontennya (data
+  jasa/pendapatan dokter) tetap **bisa diakses siapapun yang cukup berusaha**, sama
+  seperti sebelum ada gerbang. Keputusan bahwa data ini boleh public tetap seperti
+  semula.
+- Kalau butuh keamanan sungguhan (bukan sekadar penghalang), satu-satunya jalan adalah
+  pindah ke hosting dgn backend/autentikasi server-side (bukan GitHub Pages statis).
+
+Login diingat 24 jam per perangkat (`localStorage`) supaya tidak perlu input ulang tiap
+buka halaman.
+
 ## Struktur repo
 
 ```
