@@ -29,7 +29,7 @@ for r in data['tDetail']:
     rows_t.append((
         d['date'][dtIdx], d['rm'][rmIdx], d['pasien'][pasienIdx], d['kso'][kIdx], d['unit'][uIdx],
         people[docIdx], d['tindakan'][tIdx], d['subklas'][sIdx], qty, japel, jsarrs, operator, anestesi, team,
-        round(biaya / 1000),
+        round((japel + operator) / 1000),
     ))
 df_t = pd.DataFrame(rows_t, columns=cols_t)
 print(f"built tindakan dataframe ({len(df_t)} rows) in {time.time()-t1:.1f}s", flush=True)
