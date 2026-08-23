@@ -1224,11 +1224,11 @@ function computeAggregate(docIdx, kso, unit, from, to, tIdxFilter){
         c = {
           name: DATA.dict.tindakan[tIdx], subklas: DATA.dict.subklas[sIdx],
           anesName: anesIdx >= 0 ? DATA.dict.dr_anestesi[anesIdx] : null,
-          count:0, biaya:0,
+          count:0, biaya:0, japel:0, operator:0,
         };
         comboMap.set(key, c);
       }
-      c.count += cnt; c.biaya += biaya;
+      c.count += cnt; c.biaya += biaya; c.japel += japel; c.operator += operator;
       uniqueTind.add(tIdx);
     }
   }
@@ -1332,13 +1332,12 @@ function computeDetailTindakanRows(docIdx, kso, unit, from, to){
     const dstr = DATA.dict.date[dtIdx];
     if (from && dstr < from) continue;
     if (to && dstr > to) continue;
-    const biaya = r[14];
     rows.push({
       tanggal: dstr, noRm: DATA.dict.rm[r[1]], namaPasien: DATA.dict.pasien[r[2]],
       kso: DATA.dict.kso[kIdx], unit: DATA.dict.unit[uIdx], pelaksana: DATA.people[r[5]].name,
       tindakan: DATA.dict.tindakan[r[6]], subklas: DATA.dict.subklas[r[7]],
       qty: r[8], japel: r[9], jsarrs: r[10], operator: r[11], anestesi: r[12], team: r[13],
-      poin: Math.round((biaya || 0) / 1000),
+      poin: Math.round(((r[9] || 0) + (r[11] || 0)) / 1000),
     });
   }
   return rows;
@@ -1690,7 +1689,7 @@ function renderTrendSection(){
 }
 
 function getVal(row, key){
-  if (key === 'point') return (row.biaya || 0) / 1000;
+  if (key === 'point') return ((row.japel || 0) + (row.operator || 0)) / 1000;
   if (key === 'anesName') return row.anesName || '';
   return row[key];
 }
@@ -1717,7 +1716,7 @@ function renderTable(kind, rows){
     sorted.forEach(r => {
       const tr = document.createElement('tr');
       if (kind === 'tindakan'){
-        const point = (r.biaya || 0) / 1000;
+        const point = ((r.japel || 0) + (r.operator || 0)) / 1000;
         const subklas = r.subklas ? escapeHtml(r.subklas) : '&mdash;';
         const anesCell = r.anesName
           ? `<span class="anes-badge">${escapeHtml(r.anesName)}</span>`
@@ -1829,7 +1828,7 @@ function renderSpecTindakanRows(items, sort, filterText){
   const sorted = sortRows(filtered, sort.key, sort.dir);
   if (sorted.length === 0) return `<tr class="empty-row"><td colspan="6">Tidak ada data</td></tr>`;
   return sorted.map(r => {
-    const point = (r.biaya || 0) / 1000;
+    const point = ((r.japel || 0) + (r.operator || 0)) / 1000;
     const subklas = r.subklas ? escapeHtml(r.subklas) : '&mdash;';
     const anesCell = r.anesName
       ? `<span class="anes-badge">${escapeHtml(r.anesName)}</span>`
