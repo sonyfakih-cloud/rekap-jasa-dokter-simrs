@@ -427,6 +427,18 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
 .trend-delta-down{ fill:var(--warn-strong); }
 .trend-empty{ text-align:center; color:var(--text-faint); font-style:italic; padding:30px; }
 
+/* ---------- Grafik Batang 3D (Total Poin per Dokter, menu Perbandingan Spesialisasi) ---------- */
+.bar3d-chart-wrap{
+  background:linear-gradient(165deg, var(--surface) 0%, var(--surface-2) 100%);
+  border:1px solid var(--border); border-radius:14px; padding:18px 20px 10px;
+  box-shadow:var(--shadow); animation:fade-slide-in .5s ease both; overflow-x:auto;
+}
+.bar3d-svg{ display:block; max-width:none; }
+.bar3d-item{ cursor:default; }
+.bar3d-name-label{ font-family:"Public Sans", sans-serif; font-size:10px; fill:var(--text-muted); }
+.bar3d-value-label{ font-family:"IBM Plex Mono", monospace; font-size:11px; font-weight:700; fill:var(--text); }
+.bar3d-empty{ text-align:center; color:var(--text-faint); font-style:italic; padding:30px; }
+
 .footnote{ margin-top:26px; font-size:11.5px; color:var(--text-faint); border-top:1px solid var(--border); padding-top:14px; }
 .footnote code{ font-family:"IBM Plex Mono", monospace; background:var(--surface-2); padding:1px 5px; border-radius:4px; }
 
@@ -819,7 +831,7 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
     </div>
 
     <div class="section">
-      <div class="section-head"><h3>Peringkat Total Jasa</h3></div>
+      <div class="section-head"><h3>Peringkat Total Poin</h3></div>
       <div class="rank-chart" id="rankChart"></div>
     </div>
 
@@ -832,19 +844,19 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
             <th class="num" data-key="n_tindakan_rows" data-table="speccompare">Baris Tindakan<span class="arrow"></span></th>
             <th class="num" data-key="n_unique_tindakan" data-table="speccompare">Tindakan Unik<span class="arrow"></span></th>
             <th class="num" data-key="n_operatif_cases" data-table="speccompare">Kasus Operatif<span class="arrow"></span></th>
-            <th class="num" data-key="biaya_total" data-table="speccompare">Biaya Tindakan<span class="arrow"></span></th>
-            <th class="num" data-key="japel" data-table="speccompare">Jaspel<span class="arrow"></span></th>
-            <th class="num" data-key="j_sarrs" data-table="speccompare">Jasa Sarana<span class="arrow"></span></th>
-            <th class="num" data-key="operator" data-table="speccompare">Jasa Operator<span class="arrow"></span></th>
-            <th class="num" data-key="anestesi" data-table="speccompare">Jasa Anestesi<span class="arrow"></span></th>
-            <th class="num" data-key="team" data-table="speccompare">Jasa Tim<span class="arrow"></span></th>
-            <th class="num" data-key="total_jasa" data-table="speccompare">Total Jasa<span class="arrow"></span></th>
-            <th class="num" data-key="n_obat_rows" data-table="speccompare">Baris Obat<span class="arrow"></span></th>
-            <th class="num" data-key="obat_profit" data-table="speccompare">Profit Obat<span class="arrow"></span></th>
+            <th class="num" data-key="poin_japel" data-table="speccompare">Poin Jaspel<span class="arrow"></span></th>
+            <th class="num" data-key="poin_operator" data-table="speccompare">Poin Jasa Operator<span class="arrow"></span></th>
+            <th class="num" data-key="poin_anestesi" data-table="speccompare">Poin Jasa Anestesi<span class="arrow"></span></th>
+            <th class="num" data-key="total_poin" data-table="speccompare">Total Poin<span class="arrow"></span></th>
           </tr></thead>
           <tbody></tbody>
         </table></div>
       </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head"><h3>Grafik Total Poin per Dokter</h3><span class="count-tag">Total Poin = Poin Jaspel + Poin Jasa Operator + Poin Jasa Anestesi</span></div>
+      <div class="bar3d-chart-wrap" id="doctorPoinBarChartWrap"></div>
     </div>
 
     <div class="section">
@@ -902,7 +914,7 @@ let lastSpecCompareRows = [];
 let currentSort = {
   tindakan: {key:'count', dir:-1},
   obat: {key:'qty', dir:-1},
-  speccompare: {key:'total_jasa', dir:-1},
+  speccompare: {key:'total_poin', dir:-1},
   anesderived: {key:'count', dir:-1},
 };
 const tableFilters = { tindakan:'', obat:'' };
@@ -1164,10 +1176,11 @@ function computeAggregate(docIdx, kso, unit, from, to, tIdxFilter){
   };
 }
 
-function totalJasa(d){ return d.jasa.japel + d.jasa.j_sarrs + d.jasa.operator + d.jasa.anestesi + d.jasa.team; }
 // Total Jasa (3 Komponen) dlm Poin = (Jaspel+Operator+Anestesi)/1000 -- Jasa Sarana & Jasa Tim tidak dihitung.
+// Dipakai oleh KEDUA tab (Data Dokter & Perbandingan Spesialisasi) sejak 2026-08-23.
+// totalJasa() (Rupiah, 5 komponen) & obatProfitTotal() dihapus 2026-08-23 stlh Perbandingan
+// Spesialisasi jg dikonversi penuh ke Poin -- sudah tidak dipakai di manapun lagi.
 function totalJasaPoin(d){ return (d.jasa.japel + d.jasa.operator + d.jasa.anestesi) / 1000; }
-function obatProfitTotal(d){ return d.obat.reduce((a,r) => a + r.profit, 0); }
 
 // ---------- Khusus dokter anestesi: turunan Tindakan Medis Operatif (kolom BB) yg dianestesi dokter ini ----------
 function computeAnesDerived(docIdx, kso, unit, from, to){
@@ -1455,11 +1468,12 @@ function buildSpecCompareRows(){
       n_tindakan_rows: d.n_tindakan_rows,
       n_unique_tindakan: d.n_unique_tindakan,
       n_operatif_cases: d.n_operatif_cases,
-      biaya_total: d.biaya_total,
-      japel: d.jasa.japel, j_sarrs: d.jasa.j_sarrs, operator: d.jasa.operator, anestesi: d.jasa.anestesi, team: d.jasa.team,
-      total_jasa: totalJasa(d),
-      n_obat_rows: d.n_obat_rows,
-      obat_profit: obatProfitTotal(d),
+      // Sejak 2026-08-23: menu Perbandingan Spesialisasi jg ditampilkan dlm Poin (bukan Rupiah),
+      // konsisten dgn menu Data Dokter -- Jasa Sarana & Jasa Tim tdk lagi dihitung (sama spt totalJasaPoin()).
+      poin_japel: d.jasa.japel / 1000,
+      poin_operator: d.jasa.operator / 1000,
+      poin_anestesi: d.jasa.anestesi / 1000,
+      total_poin: totalJasaPoin(d),
       tindakan: d.tindakan,
       obat: d.obat,
     };
@@ -1467,19 +1481,19 @@ function buildSpecCompareRows(){
 }
 
 function renderRankChart(rows){
-  const sorted = [...rows].sort((a,b) => b.total_jasa - a.total_jasa);
-  const max = Math.max(1, ...sorted.map(r => r.total_jasa));
+  const sorted = [...rows].sort((a,b) => b.total_poin - a.total_poin);
+  const max = Math.max(1, ...sorted.map(r => r.total_poin));
   const el = document.getElementById('rankChart');
   if (sorted.length === 0){
     el.innerHTML = `<div style="text-align:center; color:var(--text-faint); font-style:italic; padding:16px;">Tidak ada dokter pada spesialisasi ini</div>`;
     return;
   }
   el.innerHTML = sorted.map((r, i) => {
-    const pct = Math.max(2, (r.total_jasa / max) * 100);
+    const pct = Math.max(2, (r.total_poin / max) * 100);
     return `<div class="rank-row">
       <div class="rank-name" title="${escapeHtml(r.name)}">${i+1}. ${escapeHtml(r.name)}</div>
       <div class="rank-track"><div class="rank-fill" style="width:${pct}%"></div></div>
-      <div class="rank-value mono">${fmtRp(r.total_jasa)}</div>
+      <div class="rank-value mono">${fmtInt(r.total_poin)} Poin</div>
     </div>`;
   }).join('');
 }
@@ -1489,22 +1503,17 @@ function renderSpecCompareTable(rows){
   const sorted = sortGeneric(rows, sort.key, sort.dir);
   const tbody = document.querySelector('#tbl-speccompare tbody');
   if (sorted.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="12">Tidak ada dokter pada spesialisasi ini</td></tr>`;
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="8">Tidak ada dokter pada spesialisasi ini</td></tr>`;
   } else {
     tbody.innerHTML = sorted.map(r => `<tr>
       <td class="name-cell">${escapeHtml(r.name)}</td>
       <td class="num mono">${fmtInt(r.n_tindakan_rows)}</td>
       <td class="num mono">${fmtInt(r.n_unique_tindakan)}</td>
       <td class="num mono">${fmtInt(r.n_operatif_cases)}</td>
-      <td class="num mono">${fmtRp(r.biaya_total)}</td>
-      <td class="num mono">${fmtRp(r.japel)}</td>
-      <td class="num mono">${fmtRp(r.j_sarrs)}</td>
-      <td class="num mono">${fmtRp(r.operator)}</td>
-      <td class="num mono">${fmtRp(r.anestesi)}</td>
-      <td class="num mono">${fmtRp(r.team)}</td>
-      <td class="num mono">${fmtRp(r.total_jasa)}</td>
-      <td class="num mono">${fmtInt(r.n_obat_rows)}</td>
-      <td class="num mono">${fmtRp(r.obat_profit)}</td>
+      <td class="num mono">${fmtInt(r.poin_japel)}</td>
+      <td class="num mono">${fmtInt(r.poin_operator)}</td>
+      <td class="num mono">${fmtInt(r.poin_anestesi)}</td>
+      <td class="num mono">${fmtInt(r.total_poin)}</td>
     </tr>`).join('');
   }
   document.querySelectorAll('th[data-table="speccompare"]').forEach(th => {
@@ -1513,20 +1522,87 @@ function renderSpecCompareTable(rows){
   });
 }
 
+// ---------- Grafik Batang 3D: Total Poin per Dokter (menu Perbandingan Spesialisasi) ----------
+// Model visual: batang 3D klasik (front face gradasi + top face & side face jajar genjang
+// diberi offset dx/dy utk kesan kedalaman) -- direplikasi dari referensi grafik batang 3D
+// yg diminta user, diterapkan ke satu metrik (Total Poin per dokter) krn data di sini
+// bersifat satu-seri (bukan dua seri spt referensinya).
+function renderDoctorPoinBarChart(rows){
+  const wrap = document.getElementById('doctorPoinBarChartWrap');
+  const sorted = [...rows].sort((a,b) => b.total_poin - a.total_poin);
+  if (sorted.length === 0){
+    wrap.innerHTML = `<div class="bar3d-empty">Tidak ada dokter pada spesialisasi ini</div>`;
+    return;
+  }
+  const n = sorted.length;
+  const depthX = 16, depthY = -13; // offset sisi atas & kanan utk efek 3D
+  const padL = 58, padR = 24, padT = 44, padB = 46;
+  const minSlot = 130;
+  const plotW = Math.max(560, n * minSlot);
+  const W = padL + plotW + padR, H = 300;
+  const plotH = H - padT - padB;
+  const maxVal = Math.max(1, ...sorted.map(r => r.total_poin));
+  const slot = plotW / n;
+  const barW = Math.min(70, slot * 0.5);
+  const baseline = padT + plotH;
+
+  let gridSvg = '';
+  for (let g = 0; g <= 4; g++){
+    const gy = padT + plotH * g/4;
+    const gv = maxVal * (1 - g/4);
+    gridSvg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${(W-padR+depthX).toFixed(1)}" y2="${gy.toFixed(1)}" class="trend-grid-line"/>`;
+    gridSvg += `<text x="${(padL-10).toFixed(1)}" y="${(gy+3).toFixed(1)}" text-anchor="end" class="trend-axis-label">${fmtInt(gv)}</text>`;
+  }
+
+  const barsSvg = sorted.map((r) => {
+    const idx = sorted.indexOf(r);
+    const cx = padL + slot*idx + slot/2;
+    const x = cx - barW/2;
+    const val = r.total_poin;
+    const yTop = padT + plotH - (maxVal > 0 ? (val/maxVal)*plotH : 0);
+    const topFace = `${x.toFixed(1)},${yTop.toFixed(1)} ${(x+barW).toFixed(1)},${yTop.toFixed(1)} ${(x+barW+depthX).toFixed(1)},${(yTop+depthY).toFixed(1)} ${(x+depthX).toFixed(1)},${(yTop+depthY).toFixed(1)}`;
+    const sideFace = `${(x+barW).toFixed(1)},${yTop.toFixed(1)} ${(x+barW+depthX).toFixed(1)},${(yTop+depthY).toFixed(1)} ${(x+barW+depthX).toFixed(1)},${(baseline+depthY).toFixed(1)} ${(x+barW).toFixed(1)},${baseline.toFixed(1)}`;
+    const nameShort = r.name.length > 20 ? r.name.slice(0,19) + '…' : r.name;
+    return `<g class="bar3d-item">
+      <title>${escapeHtml(r.name)}: ${fmtInt(val)} Poin</title>
+      <polygon points="${sideFace}" fill="var(--accent-strong)"/>
+      <polygon points="${sideFace}" fill="#000" opacity="0.16"/>
+      <rect x="${x.toFixed(1)}" y="${yTop.toFixed(1)}" width="${barW.toFixed(1)}" height="${(baseline-yTop).toFixed(1)}" fill="url(#bar3dFrontGrad)"/>
+      <polygon points="${topFace}" fill="var(--accent-soft-2)"/>
+      <polygon points="${topFace}" fill="#fff" opacity="0.3"/>
+      <text x="${(cx+depthX/2).toFixed(1)}" y="${(yTop-10).toFixed(1)}" text-anchor="middle" class="bar3d-value-label">${fmtInt(val)}</text>
+      <text x="${cx.toFixed(1)}" y="${(baseline+20).toFixed(1)}" text-anchor="middle" class="bar3d-name-label">${escapeHtml(nameShort)}</text>
+    </g>`;
+  }).join('');
+
+  wrap.innerHTML = `<svg class="bar3d-svg" width="${(W+depthX).toFixed(0)}" height="${H}" viewBox="0 0 ${(W+depthX).toFixed(0)} ${H}">
+    <defs>
+      <linearGradient id="bar3dFrontGrad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="var(--accent-soft-2)"/>
+        <stop offset="45%" stop-color="var(--accent)"/>
+        <stop offset="100%" stop-color="var(--accent-strong)"/>
+      </linearGradient>
+    </defs>
+    ${gridSvg}
+    <line x1="${padL}" y1="${baseline.toFixed(1)}" x2="${(W-padR+depthX).toFixed(1)}" y2="${baseline.toFixed(1)}" stroke="var(--border)" stroke-width="1.4"/>
+    ${barsSvg}
+  </svg>`;
+}
+
 // ---------- Rincian "Tindakan Unik" & "Obat" per dokter (sama struktur dgn menu Data Dokter) ----------
 function renderSpecTindakanRows(items, sort, filterText){
   let filtered = items;
   const ft = (filterText || '').trim().toLowerCase();
   if (ft) filtered = items.filter(r => r.name.toLowerCase().includes(ft) || (r.subklas||'').toLowerCase().includes(ft) || (r.anesName||'').toLowerCase().includes(ft));
   const sorted = sortRows(filtered, sort.key, sort.dir);
-  if (sorted.length === 0) return `<tr class="empty-row"><td colspan="6">Tidak ada data</td></tr>`;
+  if (sorted.length === 0) return `<tr class="empty-row"><td colspan="5">Tidak ada data</td></tr>`;
   return sorted.map(r => {
     const point = ((r.japel || 0) + (r.operator || 0)) / 1000;
     const subklas = r.subklas ? escapeHtml(r.subklas) : '&mdash;';
     const anesCell = r.anesName
       ? `<span class="anes-badge">${escapeHtml(r.anesName)}</span>`
       : `<span class="anes-none">&mdash;</span>`;
-    return `<tr><td class="name-cell">${escapeHtml(r.name)}</td><td class="subklas-cell">${subklas}</td><td class="anes-cell">${anesCell}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtRp(r.biaya)}</td><td class="num mono">${fmtInt(point)}</td></tr>`;
+    return `<tr><td class="name-cell">${escapeHtml(r.name)}</td><td class="subklas-cell">${subklas}</td><td class="anes-cell">${anesCell}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtInt(point)}</td></tr>`;
   }).join('');
 }
 
@@ -1559,7 +1635,7 @@ function renderSpecDoctorDetail(rows){
     wrap.innerHTML = `<div style="text-align:center; color:var(--text-faint); font-style:italic; padding:16px;">Tidak ada dokter pada spesialisasi ini</div>`;
     return;
   }
-  const sorted = [...rows].sort((a,b) => b.total_jasa - a.total_jasa);
+  const sorted = [...rows].sort((a,b) => b.total_poin - a.total_poin);
   wrap.innerHTML = sorted.map(r => {
     const tSort = getSpecDoctorSort(r.idx, 'tindakan');
     const oSort = getSpecDoctorSort(r.idx, 'obat');
@@ -1569,7 +1645,7 @@ function renderSpecDoctorDetail(rows){
     <div class="spec-doctor-card">
       <div class="spec-doctor-head">
         <h4>${escapeHtml(r.name)}</h4>
-        <span class="count-tag">${fmtInt(r.n_unique_tindakan)} tindakan unik &middot; ${fmtRp(r.total_jasa)} total jasa</span>
+        <span class="count-tag">${fmtInt(r.n_unique_tindakan)} tindakan unik &middot; ${fmtInt(r.total_poin)} Poin total</span>
       </div>
       <div class="tables-grid">
         <div class="panel">
@@ -1583,7 +1659,6 @@ function renderSpecDoctorDetail(rows){
               <th data-key="subklas">Sub-klasifikasi<span class="arrow"></span></th>
               <th data-key="anesName">Dokter Anestesi<span class="arrow"></span></th>
               <th class="num" data-key="count">Berapa Kali<span class="arrow"></span></th>
-              <th class="num" data-key="biaya">Biaya<span class="arrow"></span></th>
               <th class="num" data-key="point">Poin<span class="arrow"></span></th>
             </tr></thead>
             <tbody>${renderSpecTindakanRows(r.tindakan, tSort, tFilter)}</tbody>
@@ -1653,6 +1728,7 @@ function renderSpecCompareView(){
     `${rows.length} dokter · ${unit} · ${tName} · ${kso} · ${fmtDateID(dateFrom.value)}–${fmtDateID(dateTo.value)}`;
   renderRankChart(rows);
   renderSpecCompareTable(rows);
+  renderDoctorPoinBarChart(rows);
   renderSpecDoctorDetail(rows);
 }
 
