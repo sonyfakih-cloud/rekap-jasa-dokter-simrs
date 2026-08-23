@@ -153,6 +153,16 @@ body::before{
   box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 3px 6px -2px rgba(70,90,190,0.25); transform:translateY(-1px);
 }
 
+.header-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap; }
+.logout-btn{
+  display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); font-family:inherit;
+  background:linear-gradient(180deg, var(--surface), var(--surface-2)); color:var(--text-muted);
+  border-radius:999px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;
+  box-shadow:var(--shadow-inset); transition:color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.logout-btn:hover{ color:var(--warn-strong); box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 3px 6px -2px rgba(200,85,134,0.3); transform:translateY(-1px); }
+.logout-btn svg{ width:14px; height:14px; }
+
 /* ---------- Tab bar ---------- */
 .tab-bar{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
 .tab-btn{
@@ -635,12 +645,18 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
       <h1>Rekam Jasa Dokter</h1>
       <p>Gabungan TABEL IL ITL KRM N OB &amp; TABEL KRM OB &mdash; Januari&ndash;Juni 2026</p>
     </div>
-    <div class="theme-toggle" role="group" aria-label="Mode tampilan">
-      <button type="button" id="themeLight" title="Mode terang" aria-label="Mode terang">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
-      </button>
-      <button type="button" id="themeDark" title="Mode gelap" aria-label="Mode gelap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5Z"/></svg>
+    <div class="header-actions">
+      <div class="theme-toggle" role="group" aria-label="Mode tampilan">
+        <button type="button" id="themeLight" title="Mode terang" aria-label="Mode terang">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
+        </button>
+        <button type="button" id="themeDark" title="Mode gelap" aria-label="Mode gelap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5Z"/></svg>
+        </button>
+      </div>
+      <button type="button" class="logout-btn" id="logoutBtn" title="Keluar dari dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        <span>Keluar</span>
       </button>
     </div>
   </div>
@@ -702,7 +718,7 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
           <option value="">Semua Tindakan</option>
         </select>
       </div>
-      <div class="control-field" data-tab-visible="spesialisasi">
+      <div class="control-field" data-tab-visible="spesialisasi" style="display:none;">
         <label for="specTindakanFilter">Tindakan Unik (utk Perbandingan)</label>
         <select id="specTindakanFilter" class="select-input">
           <option value="">Semua Tindakan</option>
@@ -1943,6 +1959,11 @@ document.querySelectorAll('.mini-search').forEach(inp => {
     tableFilters[inp.dataset.target] = inp.value;
     renderAll();
   });
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  try { localStorage.removeItem('simrs_auth_until'); } catch (e) {}
+  location.reload();
 });
 
 // ---------- init ----------
