@@ -728,7 +728,7 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
         </div>
       </div>
       <div class="control-field" data-tab-visible="dokter">
-        <label for="trendTindakanFilter">Tindakan (untuk Grafik Tren)</label>
+        <label for="trendTindakanFilter">Tindakan</label>
         <select id="trendTindakanFilter" class="select-input">
           <option value="">Semua Tindakan</option>
         </select>
@@ -1248,7 +1248,12 @@ function renderAll(){
   if (activeDocIdx === null) return;
   populateTrendTindakanFilter();
   const meta = DATA.people[activeDocIdx];
-  const d = computeAggregate(activeDocIdx, ksoFilter.value, unitFilter.value, dateFrom.value, dateTo.value);
+  // 2026-08-23: filter "Tindakan" (trendTindakanFilter) skrg berlaku GLOBAL utk tab Data Dokter --
+  // bukan cuma Grafik Tren lagi. Nilai yg sama dipakai sbg tIdxFilter di sini supaya KPI "Total
+  // Jasa (3 Komponen)", kartu Jaspel/Jasa Operator/Jasa Anestesi, tabel Tindakan, dan Grafik Tren
+  // semuanya konsisten ikut tindakan yg dipilih.
+  const tIdxSel = trendTindakanFilter.value === '' ? null : parseInt(trendTindakanFilter.value, 10);
+  const d = computeAggregate(activeDocIdx, ksoFilter.value, unitFilter.value, dateFrom.value, dateTo.value, tIdxSel);
 
   document.getElementById('personName').innerHTML = escapeHtml(meta.name) + `<span class="role-pill">${meta.is_doctor ? 'Dokter Pelaksana' : 'Petugas Lain'}</span>`;
   document.getElementById('personSub').textContent = meta.is_doctor
