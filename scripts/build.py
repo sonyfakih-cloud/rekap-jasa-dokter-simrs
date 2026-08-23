@@ -178,6 +178,16 @@ body::before{
   box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 3px 6px -2px rgba(70,90,190,0.25); transform:translateY(-1px);
 }
 
+.header-actions{ display:flex; align-items:center; gap:10px; flex-shrink:0; flex-wrap:wrap; }
+.logout-btn{
+  display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); font-family:inherit;
+  background:linear-gradient(180deg, var(--surface), var(--surface-2)); color:var(--text-muted);
+  border-radius:999px; padding:8px 14px; font-size:12px; font-weight:700; cursor:pointer;
+  box-shadow:var(--shadow-inset); transition:color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+.logout-btn:hover{ color:var(--warn-strong); box-shadow:0 1px 0 rgba(255,255,255,0.6) inset, 0 3px 6px -2px rgba(200,85,134,0.3); transform:translateY(-1px); }
+.logout-btn svg{ width:14px; height:14px; }
+
 /* ---------- Tab bar ---------- */
 .tab-bar{ display:flex; gap:10px; margin-bottom:18px; flex-wrap:wrap; }
 .tab-btn{
@@ -455,25 +465,223 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
 @media (prefers-reduced-motion: reduce){
   .kpi, .jasa-card, .panel, .rank-chart, .trend-chart-wrap{ animation:none; }
 }
+
+/* ---------- Auth gate ---------- */
+.auth-gate{
+  position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center;
+  padding:24px; background:
+    radial-gradient(circle at 18% 22%, var(--dot-color) 0, transparent 45%),
+    linear-gradient(160deg, var(--bg-grad-1) 0%, var(--bg-grad-2) 55%, var(--bg-grad-3) 100%);
+}
+.auth-card{
+  width:100%; max-width:360px; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:30px 28px 26px; box-shadow:var(--shadow);
+  animation:fade-slide-in .4s ease both;
+}
+.auth-card .eyebrow{ display:block; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent-strong); margin-bottom:6px; }
+.auth-card h2{ margin:0 0 4px; font-size:19px; font-weight:800; color:var(--text); }
+.auth-card p.auth-sub{ margin:0 0 20px; font-size:12.5px; color:var(--text-muted); line-height:1.5; }
+.auth-field{ margin-bottom:14px; }
+.auth-field label{ display:block; font-size:11.5px; font-weight:600; color:var(--text-muted); margin-bottom:6px; }
+.auth-field input{
+  width:100%; box-sizing:border-box; font:inherit; font-size:15px; letter-spacing:.02em;
+  padding:11px 13px; border-radius:10px; border:1px solid var(--border); background:var(--surface-2);
+  color:var(--text); box-shadow:var(--shadow-inset);
+}
+.auth-field input:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+.auth-code-input{ font-family:"IBM Plex Mono", monospace; letter-spacing:.35em; text-align:center; font-size:19px !important; }
+.auth-submit{
+  width:100%; margin-top:4px; padding:11px 14px; border-radius:10px; border:none; cursor:pointer;
+  font:inherit; font-size:14px; font-weight:700; color:#fff;
+  background:linear-gradient(180deg, var(--accent) 0%, var(--accent-strong) 100%);
+  box-shadow:0 8px 18px -10px rgba(85,112,224,0.55);
+}
+.auth-submit:active{ box-shadow:var(--shadow-pressed); }
+.auth-error{ min-height:16px; margin-top:10px; font-size:12px; font-weight:600; color:var(--warn-strong); }
+.auth-back{ display:inline-block; margin-top:2px; font-size:12px; color:var(--text-muted); cursor:pointer; text-decoration:underline; background:none; border:none; padding:0; font:inherit; }
+.auth-foot{ margin-top:18px; padding-top:14px; border-top:1px solid var(--border); font-size:10.5px; color:var(--text-faint); line-height:1.5; }
+.auth-step{ display:none; }
+.auth-step.active{ display:block; }
 </style>
 
-<div class="marquee-bar" aria-hidden="true">
+<div class="auth-gate" id="authGate">
+  <div class="auth-card">
+    <span class="eyebrow">SIMRS &middot; Remunerasi</span>
+    <h2>Akses Terbatas</h2>
+    <p class="auth-sub">Dashboard Rekam Jasa Dokter &mdash; masukkan kata sandi, lalu kode dari Google Authenticator.</p>
+
+    <div class="auth-step active" id="authStepPw">
+      <form id="authFormPw">
+        <div class="auth-field">
+          <label for="authPw">Kata Sandi</label>
+          <input type="password" id="authPw" autocomplete="off" autocapitalize="off" spellcheck="false" />
+        </div>
+        <button type="submit" class="auth-submit">Lanjut</button>
+        <div class="auth-error" id="authErrPw"></div>
+      </form>
+    </div>
+
+    <div class="auth-step" id="authStepOtp">
+      <form id="authFormOtp">
+        <div class="auth-field">
+          <label for="authOtp">Kode Google Authenticator (6 digit)</label>
+          <input type="text" id="authOtp" class="auth-code-input" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" />
+        </div>
+        <button type="submit" class="auth-submit">Masuk</button>
+        <div class="auth-error" id="authErrOtp"></div>
+      </form>
+      <button type="button" class="auth-back" id="authBack">&larr; kembali</button>
+    </div>
+
+    <div class="auth-foot">Akses diingat di perangkat ini selama 24 jam.</div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var PW_HASH = 'e31fd44d519aedeb824ebebe477480707f045189866b22960839b062b87952f4';
+  var TOTP_SECRET_B32 = 'MWNEX4WZRAACXG3OBSVVWBTXXKNUI3UO';
+  var REMEMBER_MS = 24 * 60 * 60 * 1000;
+  var REMEMBER_KEY = 'simrs_auth_until';
+
+  function revealContent(){
+    var mq = document.querySelector('.marquee-bar');
+    var pg = document.querySelector('.page');
+    if (mq) mq.style.display = '';
+    if (pg) pg.style.display = '';
+    var gate = document.getElementById('authGate');
+    if (gate) gate.style.display = 'none';
+    document.documentElement.style.overflow = '';
+  }
+
+  function isRemembered(){
+    try {
+      var until = parseInt(localStorage.getItem(REMEMBER_KEY) || '0', 10);
+      return until > Date.now();
+    } catch (e) { return false; }
+  }
+
+  function remember(){
+    try { localStorage.setItem(REMEMBER_KEY, String(Date.now() + REMEMBER_MS)); } catch (e) {}
+  }
+
+  if (isRemembered()){
+    // .marquee-bar / .page are declared further down in the HTML source (after this
+    // script tag), so they don't exist in the DOM yet during synchronous parsing --
+    // defer the reveal until the document has finished parsing.
+    document.addEventListener('DOMContentLoaded', revealContent);
+    return;
+  }
+  document.documentElement.style.overflow = 'hidden';
+
+  async function sha256Hex(text){
+    var enc = new TextEncoder().encode(text);
+    var buf = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(buf)).map(function(b){ return b.toString(16).padStart(2, '0'); }).join('');
+  }
+
+  function base32Decode(b32){
+    var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+    var clean = b32.toUpperCase().replace(/=+$/, '');
+    var bits = '';
+    for (var i = 0; i < clean.length; i++){
+      var val = alphabet.indexOf(clean[i]);
+      if (val === -1) continue;
+      bits += val.toString(2).padStart(5, '0');
+    }
+    var bytes = [];
+    for (var j = 0; j + 8 <= bits.length; j += 8){
+      bytes.push(parseInt(bits.substring(j, j + 8), 2));
+    }
+    return new Uint8Array(bytes);
+  }
+
+  async function totpAt(unixSeconds){
+    var key = await crypto.subtle.importKey('raw', base32Decode(TOTP_SECRET_B32), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    var counter = Math.floor(unixSeconds / 30);
+    var counterBuf = new ArrayBuffer(8);
+    var view = new DataView(counterBuf);
+    view.setUint32(0, Math.floor(counter / 0x100000000));
+    view.setUint32(4, counter >>> 0);
+    var sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, counterBuf));
+    var offset = sig[sig.length - 1] & 0x0f;
+    var binCode = ((sig[offset] & 0x7f) << 24) | ((sig[offset + 1] & 0xff) << 16) | ((sig[offset + 2] & 0xff) << 8) | (sig[offset + 3] & 0xff);
+    return String(binCode % 1000000).padStart(6, '0');
+  }
+
+  async function verifyTotp(code){
+    var now = Math.floor(Date.now() / 1000);
+    var candidates = [await totpAt(now), await totpAt(now - 30), await totpAt(now + 30)];
+    return candidates.indexOf(code) !== -1;
+  }
+
+  var stepPw = document.getElementById('authStepPw');
+  var stepOtp = document.getElementById('authStepOtp');
+  var errPw = document.getElementById('authErrPw');
+  var errOtp = document.getElementById('authErrOtp');
+
+  document.getElementById('authFormPw').addEventListener('submit', function(e){
+    e.preventDefault();
+    var val = document.getElementById('authPw').value;
+    errPw.textContent = '';
+    sha256Hex(val).then(function(hash){
+      if (hash === PW_HASH){
+        stepPw.classList.remove('active');
+        stepOtp.classList.add('active');
+        document.getElementById('authOtp').focus();
+      } else {
+        errPw.textContent = 'Kata sandi salah.';
+      }
+    });
+  });
+
+  document.getElementById('authBack').addEventListener('click', function(){
+    stepOtp.classList.remove('active');
+    stepPw.classList.add('active');
+    errOtp.textContent = '';
+    document.getElementById('authPw').value = '';
+    document.getElementById('authPw').focus();
+  });
+
+  document.getElementById('authFormOtp').addEventListener('submit', function(e){
+    e.preventDefault();
+    var code = document.getElementById('authOtp').value.trim();
+    errOtp.textContent = '';
+    verifyTotp(code).then(function(ok){
+      if (ok){
+        remember();
+        revealContent();
+      } else {
+        errOtp.textContent = 'Kode tidak valid.';
+      }
+    });
+  });
+})();
+</script>
+
+<div class="marquee-bar" aria-hidden="true" style="display:none">
   <span class="marquee-text">Copyright &copy; 2026, Sony Fakih</span>
 </div>
 
-<div class="page">
+<div class="page" style="display:none">
   <div class="app-header">
     <div class="brand">
       <span class="eyebrow">SIMRS &middot; Remunerasi</span>
       <h1>Rekam Jasa Dokter</h1>
       <p>Gabungan TABEL IL ITL KRM N OB &amp; TABEL KRM OB &mdash; Januari&ndash;Juni 2026</p>
     </div>
-    <div class="theme-toggle" role="group" aria-label="Mode tampilan">
-      <button type="button" id="themeLight" title="Mode terang" aria-label="Mode terang">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
-      </button>
-      <button type="button" id="themeDark" title="Mode gelap" aria-label="Mode gelap">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5Z"/></svg>
+    <div class="header-actions">
+      <div class="theme-toggle" role="group" aria-label="Mode tampilan">
+        <button type="button" id="themeLight" title="Mode terang" aria-label="Mode terang">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
+        </button>
+        <button type="button" id="themeDark" title="Mode gelap" aria-label="Mode gelap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5Z"/></svg>
+        </button>
+      </div>
+      <button type="button" class="logout-btn" id="logoutBtn" title="Keluar dari dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        <span>Keluar</span>
       </button>
     </div>
   </div>
@@ -535,7 +743,7 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
           <option value="">Semua Tindakan</option>
         </select>
       </div>
-      <div class="control-field" data-tab-visible="spesialisasi">
+      <div class="control-field" data-tab-visible="spesialisasi" style="display:none;">
         <label for="specTindakanFilter">Tindakan Unik (utk Perbandingan)</label>
         <select id="specTindakanFilter" class="select-input">
           <option value="">Semua Tindakan</option>
@@ -1776,6 +1984,11 @@ document.querySelectorAll('.mini-search').forEach(inp => {
     tableFilters[inp.dataset.target] = inp.value;
     renderAll();
   });
+});
+
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  try { localStorage.removeItem('simrs_auth_until'); } catch (e) {}
+  location.reload();
 });
 
 // ---------- init ----------
