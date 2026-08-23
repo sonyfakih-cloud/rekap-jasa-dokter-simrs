@@ -1240,7 +1240,7 @@ function renderAll(){
 
   document.getElementById('kpiUnikTindakan').textContent = fmtInt(d.n_unique_tindakan);
   document.getElementById('kpiObat').textContent = fmtInt(d.n_obat_rows);
-  document.getElementById('kpiJasa').textContent = fmtInt(totalJasaPoin(d));
+  document.getElementById('kpiJasa').textContent = fmtInt(totalJasaPoin(d)) + ' Poin';
   document.getElementById('tindakanCountTag').textContent = `${fmtInt(d.n_unique_tindakan)} jenis unik (${fmtInt(d.tindakan.length)} kombinasi sub-klasifikasi) dari ${fmtInt(d.n_tindakan_rows)} baris`;
 
   // Jaspel/Jasa Operator/Jasa Anestesi ditampilkan dalam Poin (nilai/1000), bukan Rupiah.
@@ -1255,7 +1255,7 @@ function renderAll(){
     const card = document.createElement('div');
     card.className = 'jasa-card';
     card.setAttribute('data-jasa', k);
-    card.innerHTML = `<div class="j-label">${jasaLabels[k]}</div><div class="j-value mono">${fmtInt(v/1000)}</div><div class="j-bar-track"><div class="j-bar-fill" style="width:${pct}%"></div></div>`;
+    card.innerHTML = `<div class="j-label">${jasaLabels[k]}</div><div class="j-value mono">${fmtInt(v/1000)} Poin</div><div class="j-bar-track"><div class="j-bar-fill" style="width:${pct}%"></div></div>`;
     jasaGrid.appendChild(card);
   });
 
