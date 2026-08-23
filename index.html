@@ -255,9 +255,9 @@ body::before{
 }
 .subline{ color:var(--text-muted); font-size:13px; margin-top:4px; }
 
-.kpi-row{ display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:22px; }
-@media (max-width:980px){ .kpi-row{ grid-template-columns:repeat(3,1fr); } }
-@media (max-width:620px){ .kpi-row{ grid-template-columns:repeat(2,1fr); } }
+.kpi-row{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:22px; }
+@media (max-width:900px){ .kpi-row{ grid-template-columns:repeat(2,1fr); } }
+@media (max-width:560px){ .kpi-row{ grid-template-columns:1fr; } }
 .kpi{
   background:linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
   border:1px solid var(--border); border-radius:12px; padding:14px 16px; box-shadow:var(--shadow);
@@ -274,8 +274,8 @@ body::before{
 .section-head h3{ font-size:14.5px; margin:0; font-weight:700; }
 .section-head .count-tag{ font-size:11.5px; color:var(--text-faint); }
 
-.jasa-grid{ display:grid; grid-template-columns:repeat(5,1fr); gap:10px; }
-@media (max-width:900px){ .jasa-grid{ grid-template-columns:repeat(2,1fr); } }
+.jasa-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+@media (max-width:700px){ .jasa-grid{ grid-template-columns:1fr; } }
 .jasa-card{
   background:linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%);
   border:1px solid var(--border); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:8px;
@@ -738,19 +738,17 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
 
     <div class="kpi-row">
       <div class="kpi"><div class="k-label">Jenis Tindakan Unik</div><div class="k-value mono accent" id="kpiUnikTindakan">0</div></div>
-      <div class="kpi"><div class="k-label">Baris Tindakan (IL/ITL)</div><div class="k-value mono" id="kpiTindakan">0</div></div>
       <div class="kpi"><div class="k-label">Baris Obat (KRM OB)</div><div class="k-value mono" id="kpiObat">0</div></div>
-      <div class="kpi"><div class="k-label">Total Biaya Tindakan</div><div class="k-value mono" id="kpiBiaya">Rp 0</div></div>
-      <div class="kpi"><div class="k-label">Total Jasa (5 komponen)</div><div class="k-value mono accent" id="kpiJasa">Rp 0</div></div>
+      <div class="kpi"><div class="k-label">Total Jasa (3 Komponen)</div><div class="k-value mono accent" id="kpiJasa">0</div></div>
     </div>
 
     <div class="section">
-      <div class="section-head"><h3>Rincian Jasa</h3><span class="count-tag">Jaspel &middot; Jasa Sarana &middot; Jasa Operator &middot; Jasa Anestesi &middot; Jasa Tim</span></div>
+      <div class="section-head"><h3>Rincian Jasa</h3><span class="count-tag">Jaspel &middot; Jasa Operator &middot; Jasa Anestesi (dalam Poin)</span></div>
       <div class="jasa-grid" id="jasaGrid"></div>
     </div>
 
     <div class="section">
-      <div class="section-head"><h3>Tren Biaya Tindakan per Bulan</h3><span class="count-tag" id="trendContextTag"></span></div>
+      <div class="section-head"><h3>Tren Poin Tindakan per Bulan</h3><span class="count-tag" id="trendContextTag"></span></div>
       <div class="trend-chart-wrap" id="trendChartWrap"></div>
     </div>
 
@@ -769,7 +767,6 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
               <th data-key="subklas" data-table="tindakan">Sub-klasifikasi<span class="arrow"></span></th>
               <th data-key="anesName" data-table="tindakan">Dokter Anestesi<span class="arrow"></span></th>
               <th class="num" data-key="count" data-table="tindakan">Berapa Kali<span class="arrow"></span></th>
-              <th class="num" data-key="biaya" data-table="tindakan">Biaya<span class="arrow"></span></th>
               <th class="num" data-key="point" data-table="tindakan">Poin<span class="arrow"></span></th>
             </tr></thead>
             <tbody></tbody>
@@ -810,72 +807,6 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-head"><h3>Tindakan Unik &mdash; Rinci per Kunjungan</h3><span class="count-tag" id="detailTindakanCountTag"></span></div>
-      <div id="detailTindakanPanelWrap">
-      <div class="panel">
-        <div class="panel-toolbar">
-          <input class="mini-search" data-target="detailTindakan" placeholder="Filter no RM / nama pasien / tindakan&hellip;" />
-          <button class="export-btn" id="exportDetailTindakanBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-            Export ke Excel
-          </button>
-        </div>
-        <div class="table-wrap"><table id="tbl-detail-tindakan">
-          <thead><tr>
-            <th data-key="tanggal" data-table="detailTindakan">Tanggal<span class="arrow"></span></th>
-            <th data-key="noRm" data-table="detailTindakan">No RM<span class="arrow"></span></th>
-            <th data-key="namaPasien" data-table="detailTindakan">Nama Pasien<span class="arrow"></span></th>
-            <th data-key="kso" data-table="detailTindakan">Nama KSO<span class="arrow"></span></th>
-            <th data-key="unit" data-table="detailTindakan">Unit<span class="arrow"></span></th>
-            <th data-key="pelaksana" data-table="detailTindakan">Pelaksana<span class="arrow"></span></th>
-            <th data-key="tindakan" data-table="detailTindakan">Tindakan<span class="arrow"></span></th>
-            <th data-key="subklas" data-table="detailTindakan">Sub-klasifikasi<span class="arrow"></span></th>
-            <th class="num" data-key="qty" data-table="detailTindakan">Qty<span class="arrow"></span></th>
-            <th class="num" data-key="japel" data-table="detailTindakan">Japel<span class="arrow"></span></th>
-            <th class="num" data-key="jsarrs" data-table="detailTindakan">Jasa Sarana<span class="arrow"></span></th>
-            <th class="num" data-key="operator" data-table="detailTindakan">Operator<span class="arrow"></span></th>
-            <th class="num" data-key="anestesi" data-table="detailTindakan">Anestesi<span class="arrow"></span></th>
-            <th class="num" data-key="team" data-table="detailTindakan">Team<span class="arrow"></span></th>
-            <th class="num" data-key="poin" data-table="detailTindakan">Poin<span class="arrow"></span></th>
-          </tr></thead>
-          <tbody></tbody>
-        </table></div>
-        <div class="pager" id="pagerDetailTindakan"></div>
-      </div>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-head"><h3>Obat &mdash; Rinci per Transaksi</h3><span class="count-tag" id="detailObatCountTag"></span></div>
-      <div id="detailObatPanelWrap">
-      <div class="panel">
-        <div class="panel-toolbar">
-          <input class="mini-search" data-target="detailObat" placeholder="Filter no RM / nama pasien / nama obat&hellip;" />
-          <button class="export-btn" id="exportDetailObatBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M5 21h14"/></svg>
-            Export ke Excel
-          </button>
-        </div>
-        <div class="table-wrap"><table id="tbl-detail-obat">
-          <thead><tr>
-            <th data-key="tanggal" data-table="detailObat">Tanggal<span class="arrow"></span></th>
-            <th data-key="noPenjualan" data-table="detailObat">No Penjualan<span class="arrow"></span></th>
-            <th data-key="noRm" data-table="detailObat">Nomor RM<span class="arrow"></span></th>
-            <th data-key="namaPasien" data-table="detailObat">Nama Pasien<span class="arrow"></span></th>
-            <th data-key="kso" data-table="detailObat">KSO<span class="arrow"></span></th>
-            <th data-key="namaObat" data-table="detailObat">Nama Obat<span class="arrow"></span></th>
-            <th class="num" data-key="qty" data-table="detailObat">Qty<span class="arrow"></span></th>
-            <th class="num" data-key="hargaTotal" data-table="detailObat">Harga Total<span class="arrow"></span></th>
-            <th data-key="ruangan" data-table="detailObat">Ruangan<span class="arrow"></span></th>
-            <th data-key="dokter" data-table="detailObat">Dokter<span class="arrow"></span></th>
-          </tr></thead>
-          <tbody></tbody>
-        </table></div>
-        <div class="pager" id="pagerDetailObat"></div>
-      </div>
-      </div>
-    </div>
   </div>
 
   <!-- ===================== TAB 2: PERBANDINGAN SPESIALISASI ===================== -->
@@ -939,6 +870,8 @@ function fmtRpShort(v){
   if (abs >= 1e3) return (v/1e3).toFixed(0) + ' rb';
   return fmtInt(v);
 }
+// Alias generik (bukan Rupiah) -- dipakai utk memendekkan angka Poin di grafik tren.
+const fmtNumShort = fmtRpShort;
 
 const IND_MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 function monthLabel(m){ const parts = m.split('-'); return IND_MONTHS[parseInt(parts[1],10)-1] + ' ' + parts[0]; }
@@ -971,15 +904,8 @@ let currentSort = {
   obat: {key:'qty', dir:-1},
   speccompare: {key:'total_jasa', dir:-1},
   anesderived: {key:'count', dir:-1},
-  detailTindakan: {key:'tanggal', dir:-1},
-  detailObat: {key:'tanggal', dir:-1},
 };
-const tableFilters = { tindakan:'', obat:'', detailTindakan:'', detailObat:'' };
-const DETAIL_PAGE_SIZE = 50;
-const detailState = {
-  tindakan: { rows: [], page: 0 },
-  obat: { rows: [], page: 0 },
-};
+const tableFilters = { tindakan:'', obat:'' };
 // Sort/filter state per dokter utk tabel "Tindakan Unik & Obat per Dokter" di menu Perbandingan Spesialisasi
 const specDoctorSort = new Map();
 const specDoctorFilter = new Map();
@@ -1239,6 +1165,8 @@ function computeAggregate(docIdx, kso, unit, from, to, tIdxFilter){
 }
 
 function totalJasa(d){ return d.jasa.japel + d.jasa.j_sarrs + d.jasa.operator + d.jasa.anestesi + d.jasa.team; }
+// Total Jasa (3 Komponen) dlm Poin = (Jaspel+Operator+Anestesi)/1000 -- Jasa Sarana & Jasa Tim tidak dihitung.
+function totalJasaPoin(d){ return (d.jasa.japel + d.jasa.operator + d.jasa.anestesi) / 1000; }
 function obatProfitTotal(d){ return d.obat.reduce((a,r) => a + r.profit, 0); }
 
 // ---------- Khusus dokter anestesi: turunan Tindakan Medis Operatif (kolom BB) yg dianestesi dokter ini ----------
@@ -1296,215 +1224,6 @@ function renderAnesDerivedSection(){
   renderAnesDerivedTable(derived.rows);
 }
 
-// ---------- Rinci per kunjungan (Tindakan Unik) & per transaksi (Obat) ----------
-function computeDetailTindakanRows(docIdx, kso, unit, from, to){
-  const rows = [];
-  for (const r of DATA.tDetail){
-    if (r[5] !== docIdx) continue;
-    const kIdx = r[3], uIdx = r[4], dtIdx = r[0];
-    if (kso && DATA.dict.kso[kIdx] !== kso) continue;
-    if (unit && DATA.dict.unit[uIdx] !== unit) continue;
-    const dstr = DATA.dict.date[dtIdx];
-    if (from && dstr < from) continue;
-    if (to && dstr > to) continue;
-    rows.push({
-      tanggal: dstr, noRm: DATA.dict.rm[r[1]], namaPasien: DATA.dict.pasien[r[2]],
-      kso: DATA.dict.kso[kIdx], unit: DATA.dict.unit[uIdx], pelaksana: DATA.people[r[5]].name,
-      tindakan: DATA.dict.tindakan[r[6]], subklas: DATA.dict.subklas[r[7]],
-      qty: r[8], japel: r[9], jsarrs: r[10], operator: r[11], anestesi: r[12], team: r[13],
-      poin: Math.round(((r[9] || 0) + (r[11] || 0)) / 1000),
-    });
-  }
-  return rows;
-}
-
-function computeDetailObatRows(docIdx, kso, unit, from, to){
-  const rows = [];
-  for (const r of DATA.oDetail){
-    if (r[9] !== docIdx) continue;
-    const kIdx = r[4], uIdx = r[8], dtIdx = r[0];
-    if (kso && DATA.dict.kso[kIdx] !== kso) continue;
-    if (unit && DATA.dict.unit[uIdx] !== unit) continue;
-    const dstr = DATA.dict.date[dtIdx];
-    if (from && dstr < from) continue;
-    if (to && dstr > to) continue;
-    rows.push({
-      tanggal: dstr, noPenjualan: DATA.dict.no_penjualan[r[1]], noRm: DATA.dict.rm[r[2]],
-      namaPasien: DATA.dict.pasien[r[3]], kso: DATA.dict.kso[kIdx], namaObat: DATA.dict.obat[r[5]],
-      qty: r[6], hargaTotal: r[7], ruangan: DATA.dict.unit[uIdx], dokter: DATA.people[r[9]].name,
-    });
-  }
-  return rows;
-}
-
-function renderPager(elId, page, totalPages, totalRows, onPage){
-  const el = document.getElementById(elId);
-  const from = totalRows === 0 ? 0 : page * DETAIL_PAGE_SIZE + 1;
-  const to = Math.min(totalRows, (page + 1) * DETAIL_PAGE_SIZE);
-  el.innerHTML = '';
-  const info = document.createElement('span');
-  info.textContent = `Menampilkan ${fmtInt(from)}–${fmtInt(to)} dari ${fmtInt(totalRows)} baris (hal. ${page + 1}/${totalPages})`;
-  const nav = document.createElement('div');
-  nav.className = 'pager-nav';
-  const prevBtn = document.createElement('button');
-  prevBtn.type = 'button'; prevBtn.className = 'pager-btn'; prevBtn.textContent = '‹ Sebelumnya'; prevBtn.disabled = page <= 0;
-  prevBtn.addEventListener('click', () => onPage(page - 1));
-  const nextBtn = document.createElement('button');
-  nextBtn.type = 'button'; nextBtn.className = 'pager-btn'; nextBtn.textContent = 'Berikutnya ›'; nextBtn.disabled = page >= totalPages - 1;
-  nextBtn.addEventListener('click', () => onPage(page + 1));
-  nav.appendChild(prevBtn); nav.appendChild(nextBtn);
-  el.appendChild(info); el.appendChild(nav);
-}
-
-function renderDetailTindakanPage(){
-  const st = detailState.tindakan;
-  const totalPages = Math.max(1, Math.ceil(st.rows.length / DETAIL_PAGE_SIZE));
-  st.page = Math.min(Math.max(0, st.page), totalPages - 1);
-  const start = st.page * DETAIL_PAGE_SIZE;
-  const pageRows = st.rows.slice(start, start + DETAIL_PAGE_SIZE);
-  const tbody = document.querySelector('#tbl-detail-tindakan tbody');
-  if (pageRows.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="15">Tidak ada data pada filter ini</td></tr>`;
-  } else {
-    tbody.innerHTML = pageRows.map(r => `<tr>
-      <td class="mono">${fmtDateID(r.tanggal)}</td>
-      <td class="mono">${escapeHtml(r.noRm)}</td>
-      <td class="name-cell">${escapeHtml(r.namaPasien)}</td>
-      <td>${escapeHtml(r.kso)}</td>
-      <td class="subklas-cell">${escapeHtml(r.unit)}</td>
-      <td class="name-cell">${escapeHtml(r.pelaksana)}</td>
-      <td class="name-cell">${escapeHtml(r.tindakan)}</td>
-      <td class="subklas-cell">${escapeHtml(r.subklas)}</td>
-      <td class="num mono">${fmtInt(r.qty)}</td>
-      <td class="num mono">${fmtRp(r.japel)}</td>
-      <td class="num mono">${fmtRp(r.jsarrs)}</td>
-      <td class="num mono">${fmtRp(r.operator)}</td>
-      <td class="num mono">${fmtRp(r.anestesi)}</td>
-      <td class="num mono">${fmtRp(r.team)}</td>
-      <td class="num mono">${fmtInt(r.poin)}</td>
-    </tr>`).join('');
-  }
-  document.getElementById('detailTindakanCountTag').textContent = `${fmtInt(st.rows.length)} baris rinci`;
-  renderPager('pagerDetailTindakan', st.page, totalPages, st.rows.length, (p) => { st.page = p; renderDetailTindakanPage(); });
-  document.querySelectorAll('th[data-table="detailTindakan"]').forEach(th => {
-    const arrow = th.querySelector('.arrow');
-    arrow.textContent = th.dataset.key === currentSort.detailTindakan.key ? (currentSort.detailTindakan.dir === 1 ? '↑' : '↓') : '';
-  });
-}
-
-function renderDetailTindakanSection(){
-  if (!DATA.tDetail){
-    document.getElementById('detailTindakanPanelWrap').innerHTML =
-      `<div class="panel" style="padding:16px 18px; font-size:12.5px; color:var(--text-muted); line-height:1.6;">
-        Data rinci per kunjungan (No RM, Nama Pasien) utk seluruh dokter &amp; 6 bulan (&plusmn;443 ribu baris) tidak disematkan di dashboard interaktif ini agar tetap ringan &amp; bisa dibuka via link &mdash; tersedia lengkap sbg file <strong>Tindakan_Rinci_SemuaDokter.xlsx</strong> (dikirim terpisah).
-      </div>`;
-    document.getElementById('detailTindakanCountTag').textContent = '';
-    return;
-  }
-  const raw = computeDetailTindakanRows(activeDocIdx, ksoFilter.value, unitFilter.value, dateFrom.value, dateTo.value);
-  const ft = (tableFilters.detailTindakan || '').trim().toLowerCase();
-  const filtered = ft ? raw.filter(r =>
-    r.namaPasien.toLowerCase().includes(ft) || r.noRm.toLowerCase().includes(ft) || r.tindakan.toLowerCase().includes(ft)
-  ) : raw;
-  const sort = currentSort.detailTindakan;
-  detailState.tindakan.rows = sortGeneric(filtered, sort.key, sort.dir);
-  detailState.tindakan.page = 0;
-  renderDetailTindakanPage();
-}
-
-function renderDetailObatPage(){
-  const st = detailState.obat;
-  const totalPages = Math.max(1, Math.ceil(st.rows.length / DETAIL_PAGE_SIZE));
-  st.page = Math.min(Math.max(0, st.page), totalPages - 1);
-  const start = st.page * DETAIL_PAGE_SIZE;
-  const pageRows = st.rows.slice(start, start + DETAIL_PAGE_SIZE);
-  const tbody = document.querySelector('#tbl-detail-obat tbody');
-  if (pageRows.length === 0){
-    tbody.innerHTML = `<tr class="empty-row"><td colspan="10">Tidak ada data pada filter ini</td></tr>`;
-  } else {
-    tbody.innerHTML = pageRows.map(r => `<tr>
-      <td class="mono">${fmtDateID(r.tanggal)}</td>
-      <td class="mono">${escapeHtml(r.noPenjualan)}</td>
-      <td class="mono">${escapeHtml(r.noRm)}</td>
-      <td class="name-cell">${escapeHtml(r.namaPasien)}</td>
-      <td>${escapeHtml(r.kso)}</td>
-      <td class="name-cell">${escapeHtml(r.namaObat)}</td>
-      <td class="num mono">${fmtInt(r.qty)}</td>
-      <td class="num mono">${fmtRp(r.hargaTotal)}</td>
-      <td class="subklas-cell">${escapeHtml(r.ruangan)}</td>
-      <td class="name-cell">${escapeHtml(r.dokter)}</td>
-    </tr>`).join('');
-  }
-  document.getElementById('detailObatCountTag').textContent = `${fmtInt(st.rows.length)} baris rinci`;
-  renderPager('pagerDetailObat', st.page, totalPages, st.rows.length, (p) => { st.page = p; renderDetailObatPage(); });
-  document.querySelectorAll('th[data-table="detailObat"]').forEach(th => {
-    const arrow = th.querySelector('.arrow');
-    arrow.textContent = th.dataset.key === currentSort.detailObat.key ? (currentSort.detailObat.dir === 1 ? '↑' : '↓') : '';
-  });
-}
-
-function renderDetailObatSection(){
-  if (!DATA.oDetail){
-    document.getElementById('detailObatPanelWrap').innerHTML =
-      `<div class="panel" style="padding:16px 18px; font-size:12.5px; color:var(--text-muted); line-height:1.6;">
-        Data rinci per transaksi obat (No Penjualan, No RM, Nama Pasien) utk seluruh dokter &amp; 6 bulan (&plusmn;328 ribu baris) tidak disematkan di dashboard interaktif ini agar tetap ringan &amp; bisa dibuka via link &mdash; tersedia lengkap sbg file <strong>Obat_Rinci_SemuaDokter.xlsx</strong> (dikirim terpisah).
-      </div>`;
-    document.getElementById('detailObatCountTag').textContent = '';
-    return;
-  }
-  const raw = computeDetailObatRows(activeDocIdx, ksoFilter.value, unitFilter.value, dateFrom.value, dateTo.value);
-  const ft = (tableFilters.detailObat || '').trim().toLowerCase();
-  const filtered = ft ? raw.filter(r =>
-    r.namaPasien.toLowerCase().includes(ft) || r.noRm.toLowerCase().includes(ft) || r.namaObat.toLowerCase().includes(ft)
-  ) : raw;
-  const sort = currentSort.detailObat;
-  detailState.obat.rows = sortGeneric(filtered, sort.key, sort.dir);
-  detailState.obat.page = 0;
-  renderDetailObatPage();
-}
-
-function exportRowsToExcel(rows, columns, filename){
-  if (typeof XLSX === 'undefined'){
-    alert('Modul export Excel belum termuat (perlu koneksi internet utk memuatnya). Coba lagi sesaat lagi.');
-    return;
-  }
-  const data = rows.map(r => {
-    const obj = {};
-    columns.forEach(c => { obj[c.header] = r[c.key]; });
-    return obj;
-  });
-  const ws = XLSX.utils.json_to_sheet(data);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Data');
-  XLSX.writeFile(wb, filename);
-}
-
-function safeFileNamePart(s){ return (s || 'data').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 60); }
-
-document.getElementById('exportDetailTindakanBtn').addEventListener('click', () => {
-  const columns = [
-    {key:'tanggal', header:'Tanggal'}, {key:'noRm', header:'No RM'}, {key:'namaPasien', header:'Nama Pasien'},
-    {key:'kso', header:'Nama KSO'}, {key:'unit', header:'Unit'}, {key:'pelaksana', header:'Pelaksana'},
-    {key:'tindakan', header:'Tindakan'}, {key:'subklas', header:'Subklasifikasi'}, {key:'qty', header:'Qty'},
-    {key:'japel', header:'Japel'}, {key:'jsarrs', header:'Jasa Sarana'}, {key:'operator', header:'Operator'},
-    {key:'anestesi', header:'Anestesi'}, {key:'team', header:'Team'}, {key:'poin', header:'Poin'},
-  ];
-  const meta = activeDocIdx !== null ? DATA.people[activeDocIdx] : null;
-  const fname = `Tindakan_Rinci_${safeFileNamePart(meta ? meta.name : 'dokter')}.xlsx`;
-  exportRowsToExcel(detailState.tindakan.rows, columns, fname);
-});
-
-document.getElementById('exportDetailObatBtn').addEventListener('click', () => {
-  const columns = [
-    {key:'tanggal', header:'Tanggal'}, {key:'noPenjualan', header:'No Penjualan'}, {key:'noRm', header:'Nomor RM'},
-    {key:'namaPasien', header:'Nama Pasien'}, {key:'kso', header:'KSO'}, {key:'namaObat', header:'Nama Obat'},
-    {key:'qty', header:'Qty'}, {key:'hargaTotal', header:'Harga Total'}, {key:'ruangan', header:'Ruangan'}, {key:'dokter', header:'Dokter'},
-  ];
-  const meta = activeDocIdx !== null ? DATA.people[activeDocIdx] : null;
-  const fname = `Obat_Rinci_${safeFileNamePart(meta ? meta.name : 'dokter')}.xlsx`;
-  exportRowsToExcel(detailState.obat.rows, columns, fname);
-});
-
 // ======================================================================
 // TAB 1: DATA DOKTER
 // ======================================================================
@@ -1520,14 +1239,14 @@ function renderAll(){
     : 'Peran non-dokter (ditampilkan sebagai referensi pembanding).';
 
   document.getElementById('kpiUnikTindakan').textContent = fmtInt(d.n_unique_tindakan);
-  document.getElementById('kpiTindakan').textContent = fmtInt(d.n_tindakan_rows);
   document.getElementById('kpiObat').textContent = fmtInt(d.n_obat_rows);
-  document.getElementById('kpiBiaya').textContent = fmtRp(d.biaya_total);
-  document.getElementById('kpiJasa').textContent = fmtRp(totalJasa(d));
+  document.getElementById('kpiJasa').textContent = fmtInt(totalJasaPoin(d));
   document.getElementById('tindakanCountTag').textContent = `${fmtInt(d.n_unique_tindakan)} jenis unik (${fmtInt(d.tindakan.length)} kombinasi sub-klasifikasi) dari ${fmtInt(d.n_tindakan_rows)} baris`;
 
-  const jasaLabels = { japel:'Jaspel', j_sarrs:'Jasa Sarana', operator:'Jasa Operator', anestesi:'Jasa Anestesi', team:'Jasa Tim' };
-  const maxJasa = Math.max(1, ...Object.values(d.jasa));
+  // Jaspel/Jasa Operator/Jasa Anestesi ditampilkan dalam Poin (nilai/1000), bukan Rupiah.
+  // Jasa Sarana & Jasa Tim sengaja tidak ditampilkan (bukan bagian dari Poin dokter).
+  const jasaLabels = { japel:'Jaspel', operator:'Jasa Operator', anestesi:'Jasa Anestesi' };
+  const maxJasa = Math.max(1, ...Object.keys(jasaLabels).map(k => d.jasa[k] || 0));
   const jasaGrid = document.getElementById('jasaGrid');
   jasaGrid.innerHTML = '';
   Object.keys(jasaLabels).forEach(k => {
@@ -1536,7 +1255,7 @@ function renderAll(){
     const card = document.createElement('div');
     card.className = 'jasa-card';
     card.setAttribute('data-jasa', k);
-    card.innerHTML = `<div class="j-label">${jasaLabels[k]}</div><div class="j-value mono">${fmtRp(v)}</div><div class="j-bar-track"><div class="j-bar-fill" style="width:${pct}%"></div></div>`;
+    card.innerHTML = `<div class="j-label">${jasaLabels[k]}</div><div class="j-value mono">${fmtInt(v/1000)}</div><div class="j-bar-track"><div class="j-bar-fill" style="width:${pct}%"></div></div>`;
     jasaGrid.appendChild(card);
   });
 
@@ -1544,11 +1263,9 @@ function renderAll(){
   renderTable('obat', d.obat);
   renderTrendSection();
   renderAnesDerivedSection();
-  renderDetailTindakanSection();
-  renderDetailObatSection();
 }
 
-// ---------- Tren Biaya Tindakan per Bulan (garis, 3D) ----------
+// ---------- Tren Poin Tindakan per Bulan (garis, 3D) ----------
 function fmtDateID(iso){ if (!iso) return '-'; const p = iso.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
 
 function buildTrendRows(){
@@ -1566,7 +1283,7 @@ function buildTrendRows(){
     const mStart = m + '-01', mEnd = m + '-31';
     const effFrom = (from && from > mStart) ? from : mStart;
     const effTo = (to && to < mEnd) ? to : mEnd;
-    let biaya = 0, count = 0;
+    let japelSum = 0, operatorSum = 0, count = 0;
     for (const r of DATA.tRows){
       if (r[0] !== docIdx) continue;
       if (tIdxSel !== null && r[1] !== tIdxSel) continue;
@@ -1575,14 +1292,15 @@ function buildTrendRows(){
       if (unit && DATA.dict.unit[uIdx] !== unit) continue;
       const dstr = DATA.dict.date[dtIdx];
       if (dstr < effFrom || dstr > effTo) continue;
-      biaya += r[12]; count += r[6];
+      japelSum += r[7]; operatorSum += r[9]; count += r[6];
     }
-    return { month: m, biaya, count };
+    const poin = (japelSum + operatorSum) / 1000;
+    return { month: m, poin, count };
   });
 
   rows.forEach((r, i) => {
-    if (i === 0 || rows[i-1].biaya === 0){ r.delta = null; }
-    else { r.delta = (r.biaya - rows[i-1].biaya) / rows[i-1].biaya * 100; }
+    if (i === 0 || rows[i-1].poin === 0){ r.delta = null; }
+    else { r.delta = (r.poin - rows[i-1].poin) / rows[i-1].poin * 100; }
   });
   return rows;
 }
@@ -1594,21 +1312,21 @@ function renderTrendChart(rows){
     return;
   }
   const n = rows.length;
-  const maxVal = Math.max(1, ...rows.map(r => r.biaya));
+  const maxVal = Math.max(1, ...rows.map(r => r.poin));
   const W = 900, H = 240, padL = 56, padR = 24, padT = 40, padB = 34;
   const plotW = W - padL - padR, plotH = H - padT - padB;
   const xFor = i => n === 1 ? padL + plotW/2 : padL + (plotW * i/(n-1));
   const yFor = v => padT + plotH - (v/maxVal)*plotH;
   const baseline = padT + plotH;
 
-  const pts = rows.map((r,i) => ({ x: xFor(i), y: yFor(r.biaya), r }));
+  const pts = rows.map((r,i) => ({ x: xFor(i), y: yFor(r.poin), r }));
 
   let gridSvg = '';
   for (let g = 0; g <= 4; g++){
     const gy = padT + plotH * g/4;
     const gv = maxVal * (1 - g/4);
     gridSvg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${W-padR}" y2="${gy.toFixed(1)}" class="trend-grid-line"/>`;
-    gridSvg += `<text x="${padL-8}" y="${(gy+3).toFixed(1)}" text-anchor="end" class="trend-axis-label">${fmtRpShort(gv)}</text>`;
+    gridSvg += `<text x="${padL-8}" y="${(gy+3).toFixed(1)}" text-anchor="end" class="trend-axis-label">${fmtNumShort(gv)}</text>`;
   }
 
   let linePath = '', areaPath = '';
@@ -1622,7 +1340,7 @@ function renderTrendChart(rows){
     const deltaSvg = r.delta === null ? ''
       : `<text x="${p.x.toFixed(1)}" y="${(p.y-30).toFixed(1)}" text-anchor="middle" class="trend-delta ${r.delta>=0?'trend-delta-up':'trend-delta-down'}">${r.delta>=0?'&#9650;':'&#9660;'} ${Math.abs(r.delta).toFixed(1)}%</text>`;
     return `
-      <text x="${p.x.toFixed(1)}" y="${(p.y-14).toFixed(1)}" text-anchor="middle" class="trend-value-label">${fmtRpShort(r.biaya)}</text>
+      <text x="${p.x.toFixed(1)}" y="${(p.y-14).toFixed(1)}" text-anchor="middle" class="trend-value-label">${fmtNumShort(r.poin)}</text>
       ${deltaSvg}
       <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="9" fill="url(#trendPointGrad)" filter="url(#trendShadow)"/>
       <circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3.2" fill="#fff" opacity="0.85"/>
@@ -1675,7 +1393,7 @@ function sortRows(rows, key, dir){
     return dir * ((va||0) - (vb||0));
   });
 }
-const colCount = { tindakan: 6, obat: 3 };
+const colCount = { tindakan: 5, obat: 3 };
 
 function renderTable(kind, rows){
   const sort = currentSort[kind];
@@ -1696,7 +1414,7 @@ function renderTable(kind, rows){
         const anesCell = r.anesName
           ? `<span class="anes-badge">${escapeHtml(r.anesName)}</span>`
           : `<span class="anes-none">&mdash;</span>`;
-        tr.innerHTML = `<td class="name-cell">${escapeHtml(r.name)}</td><td class="subklas-cell">${subklas}</td><td class="anes-cell">${anesCell}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtRp(r.biaya)}</td><td class="num mono">${fmtInt(point)}</td>`;
+        tr.innerHTML = `<td class="name-cell">${escapeHtml(r.name)}</td><td class="subklas-cell">${subklas}</td><td class="anes-cell">${anesCell}</td><td class="num mono">${fmtInt(r.count)}</td><td class="num mono">${fmtInt(point)}</td>`;
       } else {
         tr.innerHTML = `<td class="name-cell">${escapeHtml(r.name)}</td><td class="num mono">${fmtInt(r.qty)}</td><td class="num mono">${fmtRp(r.profit)}</td>`;
       }
@@ -1948,8 +1666,6 @@ document.querySelectorAll('th[data-key]').forEach(th => {
     if (kind === 'tindakan' || kind === 'obat') renderAll();
     else if (kind === 'speccompare') renderSpecCompareView();
     else if (kind === 'anesderived') renderAnesDerivedSection();
-    else if (kind === 'detailTindakan') renderDetailTindakanSection();
-    else if (kind === 'detailObat') renderDetailObatSection();
   });
 });
 
