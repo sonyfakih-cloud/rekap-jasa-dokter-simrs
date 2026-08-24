@@ -440,7 +440,7 @@ td.num, th.num{ text-align:right; font-family:"IBM Plex Mono", monospace; font-v
 .bar2d-empty{ text-align:center; color:var(--text-faint); font-style:italic; padding:30px; }
 .bar2d-legend{ display:flex; flex-wrap:wrap; justify-content:center; gap:16px; padding:2px 0 14px; }
 .bar2d-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-muted); font-weight:600; }
-.bar2d-legend-swatch{ width:11px; height:11px; border-radius:3px; display:inline-block; box-shadow:0 1px 0 rgba(255,255,255,0.4) inset; }
+.bar2d-legend-swatch{ width:11px; height:11px; border-radius:3px; display:inline-block; }
 
 .footnote{ margin-top:26px; font-size:11.5px; color:var(--text-faint); border-top:1px solid var(--border); padding-top:14px; }
 .footnote code{ font-family:"IBM Plex Mono", monospace; background:var(--surface-2); padding:1px 5px; border-radius:4px; }
@@ -1541,12 +1541,14 @@ function renderSpecCompareTable(rows){
 // nilai = Poin tindakan tsb utk dokter itu = (Japel+Operator)/1000 -- sama persis dgn definisi
 // kolom "Poin" di tabel "Tindakan Dilaksanakan (Unik)" (TIDAK memasukkan komponen Jasa Anestesi).
 const TOP_N_TINDAKAN_CHART = 8;
-const CHART_SERIES_PALETTE = [
-  { top:'var(--accent-soft-2)', mid:'var(--accent)', bottom:'var(--accent-strong)' },
-  { top:'var(--yellow-soft)', mid:'var(--yellow)', bottom:'var(--yellow-strong)' },
-  { top:'var(--sage-soft)', mid:'var(--sage)', bottom:'var(--sage-strong)' },
-  { top:'var(--warn-soft)', mid:'var(--warn)', bottom:'var(--warn-strong)' },
-];
+// 2026-08-23 (koreksi ke-2, putaran ke-7): warna batang HARUS solid/flat (BUKAN gradasi/glossy
+// spt versi sebelumnya) -- di-sample langsung dari pixel screenshot referensi user ("Tren Tahunan
+// Pendapatan Vs Belanja"): biru #84AAF3 & oranye #F4BA84. Dokter pertama = biru, dokter kedua =
+// oranye (sesuai jawaban eksplisit user thd pertanyaan klarifikasi), dokter ke-3/4 (jarang terjadi)
+// pakai 2 warna solid senada tambahan. "Efek 3D" TIDAK memakai gradasi & TIDAK memakai bentuk 3D
+// literal (polygon/isometrik, sudah ditolak user 2x) -- melainkan drop-shadow lembut di sekeliling
+// tiap batang (persis pola yg terukur di pixel referensi: soft ambient shadow, bukan sheen warna).
+const CHART_SERIES_PALETTE = ['#84AAF3', '#F4BA84', '#8FD1A8', '#C9A0DC'];
 
 // Rect dgn sudut atas membulat & sudut bawah siku (baseline tetap rata) -- dipakai spy batang
 // terlihat spt referensi (bar chart flat 2D bersudut atas membulat tipis), bukan kotak polos.
@@ -1592,7 +1594,7 @@ function renderDoctorPoinBarChart(rows){
   if (legendWrap){
     legendWrap.innerHTML = perDoctor.map((pd, i) => {
       const c = CHART_SERIES_PALETTE[i % CHART_SERIES_PALETTE.length];
-      return `<span class="bar2d-legend-item"><span class="bar2d-legend-swatch" style="background:${c.mid}"></span>${escapeHtml(pd.name)}</span>`;
+      return `<span class="bar2d-legend-item"><span class="bar2d-legend-swatch" style="background:${c}"></span>${escapeHtml(pd.name)}</span>`;
     }).join('');
   }
   if (tag){
@@ -1637,13 +1639,11 @@ function renderDoctorPoinBarChart(rows){
       const yTop = padT + plotH - (maxVal > 0 ? (val/maxVal)*plotH : 0);
       const h = baseline - yTop;
       const c = CHART_SERIES_PALETTE[si % CHART_SERIES_PALETTE.length];
-      const gradId = `bar2dGrad_${ci}_${si}`;
+      // Warna FLAT/solid (bukan gradasi) -- "efek 3D" datang dari filter drop-shadow di bawah
+      // (url(#bar2dShadow), didefinisikan sekali di <defs> root svg), bukan dari sheen warna.
       barsSvg += `<g class="bar2d-item">
         <title>${escapeHtml(pd.name)} — ${escapeHtml(name)}: ${fmtInt(val)} Poin</title>
-        <defs><linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="${c.top}"/><stop offset="55%" stop-color="${c.mid}"/><stop offset="100%" stop-color="${c.bottom}"/>
-        </linearGradient></defs>
-        ${h > 0 ? `<path d="${roundedTopRectPath(x, yTop, barW, h, 4)}" fill="url(#${gradId})"/>` : ''}
+        ${h > 0 ? `<path d="${roundedTopRectPath(x, yTop, barW, h, 4)}" fill="${c}" filter="url(#bar2dShadow)"/>` : ''}
         ${val > 0 ? `<text x="${(x+barW/2).toFixed(1)}" y="${(yTop-6).toFixed(1)}" text-anchor="middle" class="bar2d-value-label">${fmtInt(val)}</text>` : ''}
       </g>`;
     });
@@ -1652,6 +1652,11 @@ function renderDoctorPoinBarChart(rows){
   });
 
   wrap.innerHTML = `<svg class="bar2d-svg" width="${W.toFixed(0)}" height="${H}" viewBox="0 0 ${W.toFixed(0)} ${H}">
+    <defs>
+      <filter id="bar2dShadow" x="-60%" y="-30%" width="220%" height="180%">
+        <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#1e293b" flood-opacity="0.22"/>
+      </filter>
+    </defs>
     ${gridSvg}
     <line x1="${padL}" y1="${baseline.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${baseline.toFixed(1)}" stroke="var(--border)" stroke-width="1.4"/>
     ${barsSvg}
