@@ -1559,6 +1559,16 @@ function roundedTopRectPath(x, y, w, h, r){
   return `M${x.toFixed(1)},${(y+rr).toFixed(1)} A${rr.toFixed(1)},${rr.toFixed(1)} 0 0 1 ${(x+rr).toFixed(1)},${y.toFixed(1)} L${(x+w-rr).toFixed(1)},${y.toFixed(1)} A${rr.toFixed(1)},${rr.toFixed(1)} 0 0 1 ${(x+w).toFixed(1)},${(y+rr).toFixed(1)} L${(x+w).toFixed(1)},${(y+h).toFixed(1)} L${x.toFixed(1)},${(y+h).toFixed(1)} Z`;
 }
 
+// Rect dgn sudut KANAN membulat & sudut kiri siku -- versi horizontal dari roundedTopRectPath,
+// dipakai oleh "Grafik Poin per Tindakan" sejak dirotasi (2026-08-23, putaran ke-9): batang
+// tumbuh ke KANAN dari sumbu-Y, jadi sisi "ujung" batang yg membulat sekarang di kanan, bukan atas.
+function roundedRightRectPath(x, y, w, h, r){
+  if (h <= 0 || w <= 0) return '';
+  const rr = Math.max(0, Math.min(r, w, h/2));
+  if (rr <= 0.5) return `M${x.toFixed(1)},${y.toFixed(1)} h${w.toFixed(1)} v${h.toFixed(1)} h${(-w).toFixed(1)} Z`;
+  return `M${x.toFixed(1)},${y.toFixed(1)} L${(x+w-rr).toFixed(1)},${y.toFixed(1)} A${rr.toFixed(1)},${rr.toFixed(1)} 0 0 1 ${(x+w).toFixed(1)},${(y+rr).toFixed(1)} L${(x+w).toFixed(1)},${(y+h-rr).toFixed(1)} A${rr.toFixed(1)},${rr.toFixed(1)} 0 0 1 ${(x+w-rr).toFixed(1)},${(y+h).toFixed(1)} L${x.toFixed(1)},${(y+h).toFixed(1)} Z`;
+}
+
 // Jumlahkan Poin ((Japel+Operator)/1000) per NAMA tindakan, digabung lintas kombinasi
 // sub-klasifikasi/dokter-anestesi (sama spt cara tabel "Tindakan Dilaksanakan (Unik)" menghitung
 // per baris, hanya di sini dijumlah per nama krn satu tindakan bisa py beberapa kombinasi).
@@ -1608,57 +1618,86 @@ function renderDoctorPoinBarChart(rows){
     return;
   }
 
+  // 2026-08-23 (putaran ke-9): grafik dirotasi 90° atas permintaan user -- nama tindakan (bisa
+  // panjang) sekarang di sumbu VERTIKAL (satu baris teks penuh per tindakan, TIDAK dipotong lagi
+  // spt versi batang tegak sebelumnya yg terpaksa memotong nama krn ruang horizontal sempit), Poin
+  // di sumbu HORIZONTAL. Setiap tindakan jadi satu grup baris berisi nSeries batang horizontal
+  // (satu per dokter), tersusun dari atas (Poin gabungan tertinggi) ke bawah.
   const nCat = shownNames.length, nSeries = perDoctor.length;
-  const padL = 60, padR = 24, padT = 20, padB = 68;
-  const groupGap = 32, barGap = 4;
-  const barW = Math.min(42, Math.max(14, 220 / nSeries));
-  const groupW = nSeries * barW + (nSeries - 1) * barGap;
-  const slotW = groupW + groupGap;
-  const plotW = nCat * slotW;
-  const W = padL + plotW + padR, H = 300;
-  const plotH = H - padT - padB;
-  const baseline = padT + plotH;
+  // padL dihitung dinamis dari panjang nama tindakan TERPANJANG yg akan ditampilkan (bukan nilai
+  // tetap) supaya nama selalu muat penuh tanpa dipotong -- dibatasi 150..320px spy chart tidak
+  // jadi terlalu lebar kalau ada nama yg sangat panjang (kasus ekstrem tetap wrap ke 2 baris, lihat
+  // di bawah, bukan dipotong dgn "...").
+  const longestNameLen = Math.max(...shownNames.map(n => n.length));
+  const padL = Math.min(320, Math.max(150, longestNameLen * 6.3 + 18));
+  const padR = 56, padT = 8, padB = 32;
+  const barGap = 3, groupGap = 16;
+  const barH = Math.min(24, Math.max(11, 130 / nSeries));
+  const groupH = nSeries * barH + (nSeries - 1) * barGap;
+  const slotH = groupH + groupGap;
+  const plotH = nCat * slotH;
+  const plotW = 560;
+  const W = padL + plotW + padR;
+  const H = padT + plotH + padB;
   const maxVal = Math.max(1, ...shownNames.flatMap(name => perDoctor.map(pd => pd.map.get(name) || 0)));
-  const maxChars = Math.max(10, Math.floor(slotW / 6));
 
   let gridSvg = '';
   for (let g = 0; g <= 4; g++){
-    const gy = padT + plotH * g/4;
-    const gv = maxVal * (1 - g/4);
-    gridSvg += `<line x1="${padL}" y1="${gy.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${gy.toFixed(1)}" class="trend-grid-line"/>`;
-    gridSvg += `<text x="${(padL-10).toFixed(1)}" y="${(gy+3).toFixed(1)}" text-anchor="end" class="trend-axis-label">${fmtInt(gv)}</text>`;
+    const gx = padL + plotW * g/4;
+    const gv = maxVal * g/4;
+    gridSvg += `<line x1="${gx.toFixed(1)}" y1="${padT}" x2="${gx.toFixed(1)}" y2="${(padT+plotH).toFixed(1)}" class="trend-grid-line"/>`;
+    gridSvg += `<text x="${gx.toFixed(1)}" y="${(padT+plotH+18).toFixed(1)}" text-anchor="middle" class="trend-axis-label">${fmtInt(gv)}</text>`;
   }
+
+  // Nama tindakan yg tetap kepanjangan meski padL sudah dimaksimalkan (jarang) dipecah jadi 2 baris
+  // via <tspan> (bukan dipotong dgn "...") -- estimasi lebar per karakter ~6.3px pd font 10.5px.
+  function wrapNameLines(name, maxCharsPerLine){
+    if (name.length <= maxCharsPerLine) return [name];
+    const words = name.split(' ');
+    const lines = []; let cur = '';
+    for (const w of words){
+      const cand = cur ? cur + ' ' + w : w;
+      if (cand.length > maxCharsPerLine && cur){ lines.push(cur); cur = w; }
+      else cur = cand;
+    }
+    if (cur) lines.push(cur);
+    return lines.slice(0, 2);
+  }
+  const maxCharsPerLine = Math.max(14, Math.floor((padL - 18) / 6.3));
 
   let barsSvg = '';
   shownNames.forEach((name, ci) => {
-    const groupX0 = padL + ci*slotW + groupGap/2;
-    const cx = groupX0 + groupW/2;
+    const groupY0 = padT + ci*slotH + groupGap/2;
+    const cy = groupY0 + groupH/2;
     perDoctor.forEach((pd, si) => {
       const val = pd.map.get(name) || 0;
-      const x = groupX0 + si*(barW+barGap);
-      const yTop = padT + plotH - (maxVal > 0 ? (val/maxVal)*plotH : 0);
-      const h = baseline - yTop;
+      const y = groupY0 + si*(barH+barGap);
+      const w = maxVal > 0 ? (val/maxVal)*plotW : 0;
       const c = CHART_SERIES_PALETTE[si % CHART_SERIES_PALETTE.length];
       // Warna FLAT/solid (bukan gradasi) -- "efek 3D" datang dari filter drop-shadow di bawah
       // (url(#bar2dShadow), didefinisikan sekali di <defs> root svg), bukan dari sheen warna.
       barsSvg += `<g class="bar2d-item">
         <title>${escapeHtml(pd.name)} — ${escapeHtml(name)}: ${fmtInt(val)} Poin</title>
-        ${h > 0 ? `<path d="${roundedTopRectPath(x, yTop, barW, h, 4)}" fill="${c}" filter="url(#bar2dShadow)"/>` : ''}
-        ${val > 0 ? `<text x="${(x+barW/2).toFixed(1)}" y="${(yTop-6).toFixed(1)}" text-anchor="middle" class="bar2d-value-label">${fmtInt(val)}</text>` : ''}
+        ${w > 0 ? `<path d="${roundedRightRectPath(padL, y, w, barH, 4)}" fill="${c}" filter="url(#bar2dShadow)"/>` : ''}
+        ${val > 0 ? `<text x="${(padL+w+6).toFixed(1)}" y="${(y+barH/2+3.5).toFixed(1)}" text-anchor="start" class="bar2d-value-label">${fmtInt(val)}</text>` : ''}
       </g>`;
     });
-    const nameShort = name.length > maxChars ? name.slice(0, maxChars-1) + '…' : name;
-    barsSvg += `<text x="${cx.toFixed(1)}" y="${(baseline+18).toFixed(1)}" text-anchor="middle" class="bar2d-name-label">${escapeHtml(nameShort)}</text>`;
+    const lines = wrapNameLines(name, maxCharsPerLine);
+    const lineH = 11.5;
+    const startY = cy - ((lines.length-1)*lineH)/2 + 3.5;
+    barsSvg += lines.map((ln, li) =>
+      `<text x="${(padL-10).toFixed(1)}" y="${(startY+li*lineH).toFixed(1)}" text-anchor="end" class="bar2d-name-label">${escapeHtml(ln)}</text>`
+    ).join('');
   });
 
-  wrap.innerHTML = `<svg class="bar2d-svg" width="${W.toFixed(0)}" height="${H}" viewBox="0 0 ${W.toFixed(0)} ${H}">
+  wrap.innerHTML = `<svg class="bar2d-svg" width="${W.toFixed(0)}" height="${H.toFixed(0)}" viewBox="0 0 ${W.toFixed(0)} ${H.toFixed(0)}">
     <defs>
-      <filter id="bar2dShadow" x="-60%" y="-30%" width="220%" height="180%">
+      <filter id="bar2dShadow" x="-30%" y="-60%" width="180%" height="220%">
         <feDropShadow dx="0" dy="2" stdDeviation="2.4" flood-color="#1e293b" flood-opacity="0.22"/>
       </filter>
     </defs>
     ${gridSvg}
-    <line x1="${padL}" y1="${baseline.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${baseline.toFixed(1)}" stroke="var(--border)" stroke-width="1.4"/>
+    <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${(padT+plotH).toFixed(1)}" stroke="var(--border)" stroke-width="1.4"/>
     ${barsSvg}
   </svg>`;
 }
